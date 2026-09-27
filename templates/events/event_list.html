@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Hackathons & Events - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h2 style="margin: 0;">Hackathon Events</h2>
+    {% if request.user.is_authenticated and request.user.role == 'organizer' or request.user.role == 'admin' or request.user.is_superuser %}
+        <a href="{% url 'event_create' %}" class="btn">+ Create Hackathon</a>
+    {% endif %}
+</div>
+
+{% if events %}
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        {% for event in events %}
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; background: #fff;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h3 style="margin: 0 0 0.5rem 0;">
+                            <a href="{% url 'event_detail' slug=event.slug %}" style="color: #2b6cb0; text-decoration: none;">
+                                {{ event.name }}
+                            </a>
+                        </h3>
+                        <p style="color: #4a5568; margin: 0 0 0.75rem 0;">
+                            {{ event.description|truncatewords:25 }}
+                        </p>
+                    </div>
+                    <div>
+                        {% if event.status == 'open' %}
+                            <span class="badge" style="background-color: #c6f6d5; color: #22543d;">OPEN</span>
+                        {% elif event.status == 'draft' %}
+                            <span class="badge" style="background-color: #feebc8; color: #744210;">DRAFT (Only Visible to You)</span>
+                        {% else %}
+                            <span class="badge" style="background-color: #fed7d7; color: #742a2a;">CLOSED</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="font-size: 0.9rem; color: #718096; display: flex; flex-wrap: wrap; gap: 1.5rem; border-top: 1px solid #edf2f7; padding-top: 0.75rem;">
+                    <div><strong>Starts:</strong> {{ event.start_date|date:"M d, Y, g:i A" }}</div>
+                    <div><strong>Ends:</strong> {{ event.end_date|date:"M d, Y, g:i A" }}</div>
+                    <div><strong>Registration Deadline:</strong> {{ event.registration_deadline|date:"M d, Y, g:i A" }}</div>
+                    <div><strong>Submissions Deadline:</strong> {{ event.submission_deadline|date:"M d, Y, g:i A" }}</div>
+                </div>
+
+                <div style="margin-top: 0.75rem;">
+                    <a href="{% url 'event_detail' slug=event.slug %}" style="color: #3182ce; font-weight: 600; text-decoration: none;">
+                        View Event Details &rarr;
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div style="text-align: center; padding: 3rem 1rem; color: #718096;">
+        <p style="font-size: 1.1rem;">No hackathons are currently listed.</p>
+        {% if request.user.is_authenticated and request.user.role == 'organizer' or request.user.role == 'admin' or request.user.is_superuser %}
+            <p><a href="{% url 'event_create' %}" class="btn">Create the first event</a></p>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

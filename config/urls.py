@@ -8,5 +8,6 @@ from django.urls import include, path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.accounts.urls')),
-    path('', lambda request: redirect('dashboard'), name='home'),
+    path('', include('apps.events.urls')),
+    path('', lambda request: redirect('event_list'), name='home'),
 ]
