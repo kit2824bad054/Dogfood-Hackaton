@@ -107,6 +107,26 @@ class TeamMembership(models.Model):
     def __str__(self):
         return f"{self.user.username} -> {self.team.name}"
 
+    def clean(self):
+        super().clean()
+        if hasattr(self, 'team') and hasattr(self, 'user') and self.team_id and self.user_id:
+            existing = TeamMembership.objects.filter(
+                user=self.user,
+                team__event=self.team.event
+            )
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            if existing.exists():
+                existing_team = existing.first().team
+                raise ValidationError(
+                    f"User '{self.user.username}' is already a member of team '{existing_team.name}' "
+                    f"in event '{self.team.event.name}'. Each participant can only join one team per event."
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 # Reusable Business Logic Services & Constraints
 
@@ -125,7 +145,7 @@ def get_user_team_for_event(user, event):
     return membership.team if membership else None
 
 
-def validate_user_can_join_event_team(user, event):
+def can_user_join_event_team(user, event, raise_exception=False):
     """
     Reusable validation utility checking whether a user is eligible to create or join a team.
 
@@ -136,14 +156,32 @@ def validate_user_can_join_event_team(user, event):
 
     Returns:
         (is_allowed: bool, error_message: str | None)
+    Raises:
+        ValidationError if raise_exception is True and check fails.
     """
     if getattr(user, 'role', None) != 'participant':
-        return False, "Only participants can create or join hackathon teams."
+        msg = "Only participants can create or join hackathon teams."
+        if raise_exception:
+            raise ValidationError(msg)
+        return False, msg
 
     if not event.is_registration_open:
-        return False, "Registration for this hackathon has closed. Team creation and joins are no longer permitted."
+        msg = "Registration for this hackathon has closed. Team creation and joins are no longer permitted."
+        if raise_exception:
+            raise ValidationError(msg)
+        return False, msg
 
     if user_has_team_in_event(user, event):
-        return False, "You already belong to a team for this hackathon. Each participant may only join one team per event."
+        current_team = get_user_team_for_event(user, event)
+        team_name = current_team.name if current_team else "another team"
+        msg = f"You are already a member of team '{team_name}' in this event. Each participant can only join one team per event."
+        if raise_exception:
+            raise ValidationError(msg)
+        return False, msg
 
     return True, None
+
+
+def validate_user_can_join_event_team(user, event, raise_exception=False):
+    """Alias for can_user_join_event_team."""
+    return can_user_join_event_team(user, event, raise_exception=raise_exception)

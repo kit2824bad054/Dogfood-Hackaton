@@ -14,6 +14,7 @@ from .forms import TeamCreateForm, JoinInviteForm
 from .models import (
     Team,
     TeamMembership,
+    can_user_join_event_team,
     get_user_team_for_event,
     user_has_team_in_event,
     validate_user_can_join_event_team,
@@ -121,14 +122,14 @@ def team_join_view(request, invite_code=None):
             'error_message': f"Team '{team.name}' has already reached its maximum capacity of {team.max_members} members.",
         }, status=400)
 
-    # Check one-team-per-event constraint
-    if user_has_team_in_event(request.user, event):
-        current_team = get_user_team_for_event(request.user, event)
+    # Check one-team-per-event constraint via reusable service function
+    can_join, err_msg = can_user_join_event_team(request.user, event)
+    if not can_join:
         return render(request, 'teams/team_error.html', {
             'event': event,
             'team': team,
             'title': 'Already On a Team',
-            'error_message': f"You are already a member of team '{current_team.name}' in this hackathon. Participants may only belong to one team per event.",
+            'error_message': err_msg,
         }, status=400)
 
     # Handle confirmation POST or preview GET
