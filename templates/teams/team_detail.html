@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Team: {{ team.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<!-- Team Header Card -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span class="role-badge role-participant">Hackathon Squad</span>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">
+                    Event: <a href="{% url 'event_detail' slug=event.slug %}" style="color: #c7d2fe; font-weight: 600;">{{ event.name }}</a>
+                </span>
+            </div>
+            <h1 style="margin-bottom: 0.5rem;">{{ team.name }}</h1>
+            <p style="margin: 0; color: var(--text-muted); font-size: 0.95rem;">
+                Founded by <strong style="color: #ffffff;">@{{ team.created_by.username }}</strong> on {{ team.created_at|date:"F j, Y" }}
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary">
+                &larr; View Event
+            </a>
+            <span class="role-badge" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; font-size: 0.85rem;">
+                👥 {{ team.member_count }} / {{ team.max_members }} Members
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Shareable Invite Code Box (Prominent display) -->
+<div class="card" style="border-color: rgba(99, 102, 241, 0.4); background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(22, 30, 49, 0.95)); margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem; color: #ffffff;">
+                <span>🎟️</span> Invite Teammates
+            </h3>
+            <p style="margin: 0; font-size: 0.9rem; color: #cbd5e1;">
+                Share your unique team invite code or direct join link with fellow participants:
+            </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div style="background: rgba(15, 23, 42, 0.9); border: 1px solid var(--border-accent); padding: 0.6rem 1.25rem; border-radius: var(--radius-md); font-family: monospace; font-size: 1.25rem; letter-spacing: 0.1em; color: #a5b4fc; font-weight: 700;">
+                {{ team.invite_code }}
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="copyInvite('{{ team.invite_code }}', this)">
+                Copy Code
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyInvite('{{ invite_url }}', this)">
+                Copy Full Link
+            </button>
+        </div>
+    </div>
+
+    <div style="margin-top: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; font-size: 0.85rem; color: var(--text-muted);">
+        Direct Join URL: <code style="color: #94a3b8; font-family: monospace;">{{ invite_url }}</code>
+    </div>
+</div>
+
+<!-- Team Members Roster -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <span>👥</span> Team Roster ({{ memberships|length }} / {{ team.max_members }})
+            </h3>
+            <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                Participants registered under this team for {{ event.name }}.
+            </p>
+        </div>
+
+        <div>
+            {% if event.is_submission_open %}
+                <span class="indicator-open">&bull; Roster Modifiable (Before Submission Deadline)</span>
+            {% else %}
+                <span class="indicator-closed">&bull; Roster Locked (Submission Deadline Passed)</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for membership in memberships %}
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); padding: 1rem 1.25rem; border-radius: var(--radius-md);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #ffffff;">
+                        {{ membership.user.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <strong style="color: #ffffff; font-size: 1.05rem;">{{ membership.user.username }}</strong>
+                            {% if membership.user == team.created_by %}
+                                <span class="role-badge role-organizer" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">👑 Team Founder</span>
+                            {% else %}
+                                <span class="role-badge role-participant" style="font-size: 0.7rem; padding: 0.15rem 0.5rem;">Member</span>
+                            {% endif %}
+                        </div>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">
+                            {{ membership.user.email }} &bull; Joined {{ membership.joined_at|date:"M d, g:i A" }}
+                        </span>
+                    </div>
+                </div>
+
+                <div>
+                    {% if is_creator and membership.user != team.created_by and can_remove_members %}
+                        <form method="post" action="{% url 'team_remove_member' team_id=team.id user_id=membership.user.id %}" onsubmit="return confirm('Remove {{ membership.user.username }} from the team?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                Remove Member
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function copyInvite(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+        const originalText = btn.textContent;
+        btn.textContent = "✓ Copied!";
+        btn.style.background = "#10b981";
+        setTimeout(function() {
+            btn.textContent = originalText;
+            btn.style.background = "";
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

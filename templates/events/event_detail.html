@@ -39,7 +39,16 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            {% if request.user.is_authenticated and request.user.role == 'participant' %}
+                <a href="{% url 'my_team' event_slug=event.slug %}" class="btn btn-primary">
+                    👥 My Team / Form Team
+                </a>
+            {% elif not request.user.is_authenticated %}
+                <a href="{% url 'signup' %}" class="btn btn-primary">
+                    🚀 Join Hackathon
+                </a>
+            {% endif %}
             {% if is_creator_or_admin %}
                 <a href="{% url 'event_edit' slug=event.slug %}" class="btn btn-secondary">
                     ✏️ Edit Event Settings

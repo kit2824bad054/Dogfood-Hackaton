@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 580px; margin: 2rem auto;">
+    <div class="card" style="border-color: rgba(244, 63, 94, 0.35); text-align: center; padding: 3rem 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+        <h2 style="color: #f87171; margin-bottom: 0.75rem;">{{ title }}</h2>
+        <p style="color: #cbd5e1; font-size: 1.05rem; line-height: 1.6; margin-bottom: 2rem;">
+            {{ error_message }}
+        </p>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            {% if event %}
+                <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary">
+                    &larr; Back to {{ event.name }}
+                </a>
+            {% else %}
+                <a href="{% url 'event_list' %}" class="btn btn-secondary">
+                    &larr; Explore Hackathons
+                </a>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">
+                Return to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

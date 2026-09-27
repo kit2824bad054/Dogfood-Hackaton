@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}My Team - {{ event.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 2rem auto;">
+    <div class="card" style="text-align: center; padding: 3.5rem 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+        <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">No Team Yet for {{ event.name }}</h2>
+        <p style="font-size: 1.05rem; color: #cbd5e1; max-width: 480px; margin: 0 auto 2rem auto;">
+            You have not registered or joined a team for this hackathon yet. You can found a new team or join an existing one using an invite code.
+        </p>
+
+        {% if is_participant %}
+            {% if event.is_registration_open %}
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="{% url 'team_create' event_slug=event.slug %}" class="btn btn-primary" style="padding: 0.8rem 1.5rem;">
+                        🚀 Create a New Team
+                    </a>
+                    <a href="{% url 'team_join_input' %}" class="btn btn-secondary" style="padding: 0.8rem 1.5rem;">
+                        🎟️ Join with Invite Code
+                    </a>
+                </div>
+            {% else %}
+                <div class="role-badge" style="background: rgba(244, 63, 94, 0.2); color: #fb7185; padding: 0.5rem 1rem;">
+                    ⚠️ Registration has closed for this hackathon. New teams can no longer be formed.
+                </div>
+            {% endif %}
+        {% else %}
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                Only participants can create and join hackathon teams.
+            </p>
+        {% endif %}
+
+        <div style="margin-top: 2rem;">
+            <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary btn-sm">
+                &larr; Back to Event Details
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

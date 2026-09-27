@@ -9,5 +9,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.accounts.urls')),
     path('', include('apps.events.urls')),
+    path('', include('apps.teams.urls')),
     path('', lambda request: redirect('event_list'), name='home'),
 ]

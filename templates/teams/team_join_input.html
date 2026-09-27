@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Join a Team - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 520px; margin: 2rem auto;">
+    <div class="card" style="padding: 2.5rem 2rem; text-align: center;">
+        <div class="brand-icon" style="margin: 0 auto 1rem auto; width: 48px; height: 48px; font-size: 1.5rem;">
+            🎟️
+        </div>
+        <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">Enter Team Invite Code</h2>
+        <p style="font-size: 0.95rem; color: #94a3b8; margin-bottom: 2rem;">
+            Have an invite code from your squad leader? Paste it below to join the team.
+        </p>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="form-group" style="text-align: left;">
+                <label class="form-label" for="{{ form.invite_code.id_for_label }}">Invite Code</label>
+                {{ form.invite_code }}
+                {% if form.invite_code.errors %}
+                    <ul class="errorlist">{% for e in form.invite_code.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; margin-top: 0.5rem;">
+                Find & Join Team &rarr;
+            </button>
+        </form>
+
+        <div style="margin-top: 2rem;">
+            <a href="{% url 'event_list' %}" class="btn btn-secondary btn-sm">&larr; Back to Events</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

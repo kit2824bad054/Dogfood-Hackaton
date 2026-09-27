@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Join Team: {{ team.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 580px; margin: 2rem auto;">
+    <div class="card" style="text-align: center; padding: 3rem 2rem;">
+        <div class="brand-icon" style="margin: 0 auto 1.5rem auto; width: 56px; height: 56px; font-size: 1.75rem;">
+            🤝
+        </div>
+
+        <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">Join Hackathon Team</h2>
+        <p style="font-size: 1.05rem; color: #cbd5e1; margin-bottom: 2rem;">
+            You have been invited to join <strong style="color: #ffffff;">{{ team.name }}</strong> for the hackathon
+            <strong style="color: var(--primary);">{{ event.name }}</strong>.
+        </p>
+
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 2rem; text-align: left;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span style="color: var(--text-muted); font-size: 0.9rem;">Team Founder:</span>
+                <strong style="color: #ffffff;">@{{ team.created_by.username }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                <span style="color: var(--text-muted); font-size: 0.9rem;">Current Capacity:</span>
+                <span class="role-badge role-participant" style="font-size: 0.8rem;">
+                    {{ member_count }} / {{ team.max_members }} Members
+                </span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: var(--text-muted); font-size: 0.9rem;">Registration Closes:</span>
+                <span style="color: #cbd5e1; font-size: 0.9rem;">{{ event.registration_deadline|date:"M d, g:i A" }}</span>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1.05rem; margin-bottom: 1rem;">
+                ✓ Confirm & Join Team
+            </button>
+            <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary" style="width: 100%;">
+                Decline & Return to Event
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}
