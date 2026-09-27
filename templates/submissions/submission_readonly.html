@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Submission: {{ submission.title|default:team.name }} (Read-Only) - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 850px; margin: 0 auto;">
+
+    <!-- Breadcrumb -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <a href="{% url 'team_submission_status' team_id=team.id %}" class="btn btn-secondary btn-sm">
+                &larr; Back to Submission Status
+            </a>
+            <a href="{% url 'team_detail' team_id=team.id %}" class="btn btn-secondary btn-sm" style="margin-left: 0.5rem;">
+                Team Roster
+            </a>
+        </div>
+        <span class="role-badge role-participant">
+            Team: {{ team.name }}
+        </span>
+    </div>
+
+    <!-- Read-Only Banner -->
+    {% if deadline_passed %}
+        <div class="alert alert-error" style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 1.5rem;">🔒</span>
+            <div>
+                <strong>Submission Deadline Has Passed</strong>
+                <div style="font-size: 0.85rem; margin-top: 0.2rem;">
+                    The submission deadline was {{ event.submission_deadline|date:"M d, Y @ h:i A" }}. This project is locked in read-only mode and can no longer be edited.
+                </div>
+            </div>
+        </div>
+    {% elif can_unsubmit %}
+        <div class="card" style="border-color: rgba(52, 211, 153, 0.4); background: rgba(16, 185, 129, 0.08); margin-bottom: 1.5rem; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <strong style="color: #34d399; font-size: 1.05rem;">✅ Project is Officially Submitted</strong>
+                    <div style="color: #cbd5e1; font-size: 0.9rem; margin-top: 0.25rem;">
+                        Submitted on {{ submission.submitted_at|date:"M d, Y @ h:i A" }}. To make further edits before the deadline, you must un-submit back to draft.
+                    </div>
+                </div>
+                <form method="POST" action="{% url 'submission_unsubmit' team_id=team.id %}" onsubmit="return confirm('Revert submission back to draft to make edits?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary" style="border-color: rgba(245, 158, 11, 0.5); color: #fbbf24;">
+                        ↩️ Un-submit to Edit Draft
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Read-only Display Card -->
+    <div class="card">
+        <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span class="role-badge" style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; margin-bottom: 0.5rem; display: inline-block;">
+                    Read-Only Project View
+                </span>
+                <h1 style="margin: 0.25rem 0 0.5rem 0;">{{ submission.title|default:"(Untitled Submission)" }}</h1>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+                    Team: <strong style="color: #ffffff;">{{ team.name }}</strong> &bull; Event: <strong style="color: #ffffff;">{{ event.name }}</strong>
+                </p>
+            </div>
+
+            <div>
+                {% if submission.is_submitted %}
+                    <span class="role-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700;">
+                        ✅ SUBMITTED
+                    </span>
+                {% else %}
+                    <span class="role-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-weight: 700;">
+                        📝 DRAFT
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Project Fields Display -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            {% if submission.track %}
+                <div>
+                    <h4 style="color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+                        Category Track
+                    </h4>
+                    <span class="role-badge" style="background: rgba(139, 92, 246, 0.2); color: #c4b5fd;">
+                        {{ submission.track.name }}
+                    </span>
+                </div>
+            {% endif %}
+
+            <div>
+                <h4 style="color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                    Project Description
+                </h4>
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; color: #e2e8f0; line-height: 1.7; white-space: pre-wrap;">
+                    {{ submission.description|default:"No description provided." }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+                    <h4 style="color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">
+                        Source Code Repository
+                    </h4>
+                    {% if submission.repo_url %}
+                        <a href="{{ submission.repo_url }}" target="_blank" rel="noopener noreferrer" style="color: #818cf8; word-break: break-all; font-weight: 600;">
+                            🔗 {{ submission.repo_url }}
+                        </a>
+                    {% else %}
+                        <span style="color: var(--text-muted); font-style: italic;">None provided</span>
+                    {% endif %}
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1rem;">
+                    <h4 style="color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">
+                        Live Demo / Video URL
+                    </h4>
+                    {% if submission.demo_url %}
+                        <a href="{{ submission.demo_url }}" target="_blank" rel="noopener noreferrer" style="color: #34d399; word-break: break-all; font-weight: 600;">
+                            🌐 {{ submission.demo_url }}
+                        </a>
+                    {% else %}
+                        <span style="color: var(--text-muted); font-style: italic;">None provided</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

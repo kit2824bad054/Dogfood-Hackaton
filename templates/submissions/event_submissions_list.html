@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Submissions: {{ event.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<!-- Header Card -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1.5rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span class="role-badge role-organizer">Organizer Console</span>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">
+                    Hackathon: <a href="{% url 'event_detail' slug=event.slug %}" style="color: #c7d2fe; font-weight: 600;">{{ event.name }}</a>
+                </span>
+            </div>
+            <h1 style="margin-bottom: 0.5rem;">📋 Project Submissions</h1>
+            <p style="margin: 0; color: #cbd5e1; font-size: 0.95rem;">
+                Read-only submission directory for <strong>{{ event.name }}</strong>.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary">
+                &larr; View Event
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #ffffff;">{{ total_count }}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Projects</div>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #34d399;">{{ submitted_count }}</div>
+            <div style="font-size: 0.8rem; color: #34d399; text-transform: uppercase;">Final Submitted</div>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); text-align: center;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #fbbf24;">{{ draft_count }}</div>
+            <div style="font-size: 0.8rem; color: #fbbf24; text-transform: uppercase;">In Progress (Draft)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Submissions Table / Cards -->
+{% if submissions %}
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-subtle); background: rgba(15, 23, 42, 0.6); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; font-size: 1.05rem;">Team Submissions Roster</h3>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">
+                Read-only mode (Evaluation & Judging in Phase 6)
+            </span>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.92rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; background: rgba(15, 23, 42, 0.4);">
+                        <th style="padding: 1rem 1.5rem;">Project Title</th>
+                        <th style="padding: 1rem;">Team & Members</th>
+                        <th style="padding: 1rem;">Track</th>
+                        <th style="padding: 1rem;">Links</th>
+                        <th style="padding: 1rem;">Status</th>
+                        <th style="padding: 1rem 1.5rem;">Submitted At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sub in submissions %}
+                        <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s ease;">
+                            <td style="padding: 1.2rem 1.5rem; font-weight: 600; color: #ffffff;">
+                                <div>{{ sub.title|default:"(Draft - No Title Yet)" }}</div>
+                                {% if sub.description %}
+                                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal; margin-top: 0.25rem; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {{ sub.description }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1.2rem 1rem;">
+                                <div style="font-weight: 600; color: #c7d2fe;">{{ sub.team.name }}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">
+                                    {% for membership in sub.team.memberships.all %}
+                                        @{{ membership.user.username }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td style="padding: 1.2rem 1rem;">
+                                {% if sub.track %}
+                                    <span class="role-badge" style="background: rgba(139, 92, 246, 0.2); color: #c4b5fd; font-size: 0.8rem;">
+                                        {{ sub.track.name }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted); font-size: 0.85rem;">—</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1.2rem 1rem;">
+                                <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                                    {% if sub.repo_url %}
+                                        <a href="{{ sub.repo_url }}" target="_blank" rel="noopener noreferrer" style="color: #818cf8; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                            <span>🔗</span> Repo
+                                        </a>
+                                    {% endif %}
+                                    {% if sub.demo_url %}
+                                        <a href="{{ sub.demo_url }}" target="_blank" rel="noopener noreferrer" style="color: #34d399; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                            <span>🌐</span> Demo
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td style="padding: 1.2rem 1rem;">
+                                {% if sub.is_submitted %}
+                                    <span class="role-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 600; font-size: 0.8rem;">
+                                        ✅ Submitted
+                                    </span>
+                                {% else %}
+                                    <span class="role-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-weight: 600; font-size: 0.8rem;">
+                                        📝 Draft
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1.2rem 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+                                {% if sub.submitted_at %}
+                                    {{ sub.submitted_at|date:"M d, Y" }}<br>
+                                    <small>{{ sub.submitted_at|date:"h:i A" }}</small>
+                                {% else %}
+                                    <span style="font-style: italic;">Not yet submitted</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 3.5rem 2rem; border-style: dashed;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+        <h3 style="margin-bottom: 0.5rem;">No Submissions Yet</h3>
+        <p style="color: var(--text-muted); max-width: 480px; margin: 0 auto;">
+            Teams participating in <strong>{{ event.name }}</strong> have not started their project submissions yet.
+        </p>
+    </div>
+{% endif %}
+{% endblock %}

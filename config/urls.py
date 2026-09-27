@@ -10,5 +10,6 @@ urlpatterns = [
     path('', include('apps.accounts.urls')),
     path('', include('apps.events.urls')),
     path('', include('apps.teams.urls')),
+    path('', include('apps.submissions.urls')),
     path('', lambda request: redirect('event_list'), name='home'),
 ]

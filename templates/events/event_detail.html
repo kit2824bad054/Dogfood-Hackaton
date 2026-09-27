@@ -50,6 +50,9 @@
                 </a>
             {% endif %}
             {% if is_creator_or_admin %}
+                <a href="{% url 'event_submissions_list' event_slug=event.slug %}" class="btn btn-secondary">
+                    📋 Submissions
+                </a>
                 <a href="{% url 'event_edit' slug=event.slug %}" class="btn btn-secondary">
                     ✏️ Edit Event Settings
                 </a>

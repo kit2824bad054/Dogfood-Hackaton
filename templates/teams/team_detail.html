@@ -19,7 +19,12 @@
             </p>
         </div>
 
-        <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            {% if is_member %}
+                <a href="{% url 'team_submission_status' team_id=team.id %}" class="btn btn-primary">
+                    🚀 Project Submission
+                </a>
+            {% endif %}
             <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary">
                 &larr; View Event
             </a>

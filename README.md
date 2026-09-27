@@ -10,7 +10,7 @@ A 100% self-hosted hackathon submission and judging platform built with Django, 
 - **Phase 2: Authentication & RBAC** (Completed): Custom User model with roles, signup, login/logout, role-based dashboards, reusable `@role_required` decorator, and Django Admin role management.
 - **Phase 3: Events & Hackathon Lifecycles** (Completed): Event, Track, and Prize models, inline formsets, draft visibility rules, core date editing protection, and deadline enforcement utilities.
 - **Phase 4: Team Formation & Membership** (Completed): Team and TeamMembership models, cryptographic URL-safe invite codes, capacity limits, member removal before submission deadline, and one-team-per-event application constraint.
-- **Phase 5**: Project Submissions & Media (Upcoming)
+- **Phase 5: Project Submissions** (Completed): Submission model (OneToOne with Team), collaborative team draft editing, server-side deadline enforcement, submit/un-submit lifecycle, and organizer dashboard.
 - **Phase 6**: Public Gallery & Judging (Upcoming)
 
 ---
@@ -83,6 +83,40 @@ A 100% self-hosted hackathon submission and judging platform built with Django, 
 
 ---
 
+## Phase 5: Project Submissions
+
+### Models & Schema (`apps/submissions/models.py`)
+- **`Submission`**:
+  - `team`: `OneToOneField` to `Team` (`related_name='submission'`) — ensures strictly one submission per team.
+  - `event`: `ForeignKey` to `Event` (`related_name='submissions'`) — denormalized from `team.event` on save, never user-editable.
+  - `track`: `ForeignKey` to `Track` (`null=True, blank=True, on_delete=SET_NULL`) — optional track selection scoped to event.
+  - `title`: `CharField(max_length=200, blank=True)`
+  - `description`: `TextField(blank=True)`
+  - `repo_url`: `URLField(max_length=500, blank=True)`
+  - `demo_url`: `URLField(max_length=500, blank=True)`
+  - `status`: `choices=['draft', 'submitted']` (default: `'draft'`)
+  - `submitted_at`: DateTimeField (set only when status transitions to `'submitted'`)
+  - `created_at`, `updated_at`: auto timestamps
+
+### Access Control & Collaborative Draft Editing
+1. **Team-Scoped Permissions**:
+   - Only registered members of the team can create, edit, or submit project drafts (checked via `team.has_member(user)`). Non-members receive **HTTP 403 Forbidden**.
+   - Any member of the team can edit the shared draft collaboratively.
+2. **Server-Side Deadline Enforcement (Critical)**:
+   - Evaluates `event.is_submission_open` on **EVERY write path** (draft creation, editing, and final submit).
+   - Once the submission deadline has passed:
+     - Direct POST attempts to save or submit are rejected with **HTTP 400 Bad Request** (`Deadline Passed`).
+     - Visiting the edit endpoint renders a **read-only display view** (no `<form>` or input fields).
+3. **Submit & Un-Submit Lifecycle**:
+   - **Submit Action**: Changes status to `'submitted'` and timestamps `submitted_at`. Requires `title`, `description`, and `repo_url` to be non-empty (incomplete drafts rejected with HTTP 400).
+   - **Un-Submit Action**: Before the submission deadline, teams can un-submit back to `'draft'` to make further revisions. Once deadline passes, un-submitting is locked.
+4. **Organizer & Admin Views**:
+   - Organizers can view a read-only list of all submissions for their own events at `/events/<slug>/submissions/`.
+   - Organizers attempting to view submissions for events they do not own receive **HTTP 403 Forbidden**.
+   - Platform Administrators can view submissions across all events.
+
+---
+
 ## Project Structure
 
 ```text
@@ -98,9 +132,9 @@ A 100% self-hosted hackathon submission and judging platform built with Django, 
 │   ├── accounts/          # Custom User model, auth views, RBAC decorators & admin
 │   ├── events/            # Events, tracks, prizes, formsets, and lifecycle management
 │   ├── teams/             # Teams, memberships, invite codes, and roster views (Phase 4)
-│   ├── submissions/       # Submissions app scaffold (Phase 5)
+│   ├── submissions/       # Submissions, drafts, deadline enforcement & organizer console (Phase 5)
 │   └── gallery/           # Gallery app scaffold (Phase 6)
-├── templates/             # HTML templates (accounts, events, teams, base)
+├── templates/             # HTML templates (accounts, events, teams, submissions, base)
 ├── static/                # Static asset files
 └── tests/                 # Integration test suites
 ```
@@ -209,13 +243,81 @@ docker compose up --build
 4. **Expected Result**: Join is rejected with the same one-team constraint error.
 
 ### 2. Run Automated Tests
-Execute the comprehensive test suite (34 tests covering Phase 1, Phase 2, Phase 3, and Phase 4):
+Execute the comprehensive test suite (43 tests covering Phases 1, 2, 3, 4, and 5):
 ```powershell
 .\.venv\Scripts\python manage.py test
 ```
 **Expected Output:**
 ```text
-Ran 34 tests in 66.148s
+Ran 43 tests in 193.820s
 
 OK
 ```
+
+---
+
+## Phase 5 Verification & Testing Guide: Project Submissions
+
+### 1. Automated Endpoint Rejection Verification
+Run the built-in Phase 5 verification command:
+```powershell
+.\.venv\Scripts\python manage.py verify_phase5
+```
+
+**Verification Steps Executed by the Command:**
+1. Authenticates as a team participant and POSTs to `/teams/<team_id>/submission/edit/` to create an initial project draft.
+2. Manually sets the hackathon's `submission_deadline` to a past date (`timezone.now() - timedelta(hours=2)`).
+3. Directly POSTs an edit revision to `/teams/<team_id>/submission/edit/`.
+4. Confirms the server strictly rejects the edit at the endpoint level with **HTTP 400 Bad Request** (`Deadline Passed`).
+5. Inspects the database record to confirm the submission title and data remain completely unchanged.
+6. Directly POSTs to `/teams/<team_id>/submission/submit/` and confirms final submission is also rejected with **HTTP 400**.
+
+**Expected Output:**
+```text
+=== Phase 5 Verification: Project Submissions & Deadline Enforcement ===
+
+[Step 1] Creating project submission draft via POST to /teams/<id>/submission/edit/ ...
+  -> HTTP Status Code: 302 (Redirect 302 to status overview expected)
+  -> SUCCESS: Submission created in DB: 'Autonomous Drone Dispatcher' [Status: draft]
+
+[Step 2] Manually manipulating event.submission_deadline to past date ...
+  -> event.submission_deadline: 2026-09-27 11:28:36.798464+00:00
+  -> event.is_submission_open: False (Should be False)
+
+[Step 3] Attempting to POST edit to endpoint after deadline has passed ...
+  -> HTTP Status Code: 400 (HTTP 400 expected)
+  -> SUCCESS: Endpoint strictly rejected write with HTTP 400 'Submission Deadline Passed'!
+
+[Step 4] Checking database record integrity ...
+  -> DB Title: 'Autonomous Drone Dispatcher'
+  -> SUCCESS: Database record is completely unchanged. Late write was rejected server-side.
+
+[Step 5] Attempting to POST to final submit endpoint after deadline ...
+  -> HTTP Status Code: 400 (HTTP 400 expected)
+  -> SUCCESS: Final submit endpoint strictly rejected with HTTP 400!
+
+========================================================
+>>> ALL CHECKS PASSED: Phase 5 deadline enforcement verified! <<<
+========================================================
+```
+
+### 2. Manual Browser Walkthrough
+1. **Log in as a Team Member**:
+   - Navigate to `/events/` and open an active hackathon where you have a team.
+   - Click **👥 My Team / Form Team** or go to your team detail page.
+   - Click the prominent **🚀 Project Submission** button.
+2. **Drafting a Submission**:
+   - Click **✏️ Start Project Submission Draft**.
+   - Enter a Project Title, select a Track, and input your Repository URL and Description.
+   - Click **💾 Save Project Draft**.
+   - Notice the status updates to **📝 DRAFT** with a real-time readiness checklist.
+3. **Submitting the Project**:
+   - Ensure Title, Description, and Repo URL are provided.
+   - Click **🚀 Submit Final Project**.
+   - Status badge turns green: **✅ SUBMITTED**.
+4. **Reverting / Editing Prior to Deadline**:
+   - While the deadline is open, click **↩️ Un-submit to Edit Draft**.
+   - The project safely transitions back to draft mode.
+5. **Organizer Console**:
+   - Log in as the Event Organizer or Platform Admin.
+   - Visit `/events/<slug>/submissions/` to see the full roster of submissions, tracks, and team members in read-only mode.

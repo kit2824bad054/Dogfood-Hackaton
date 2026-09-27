@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Project Submission - {{ team.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 1.5rem;">
+        <a href="{% url 'team_submission_status' team_id=team.id %}" class="btn btn-secondary btn-sm">
+            &larr; Back to Submission Overview
+        </a>
+    </div>
+
+    <!-- Edit Form Card -->
+    <div class="card">
+        <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <span class="role-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                    Collaborative Draft Mode
+                </span>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">
+                    Deadline: <strong style="color: #ffffff;">{{ event.submission_deadline|date:"M d, Y @ h:i A" }}</strong>
+                </span>
+            </div>
+            <h1 style="margin-bottom: 0.5rem;">✏️ Project Submission Draft</h1>
+            <p style="margin: 0; color: #cbd5e1; font-size: 0.95rem;">
+                Editing submission for team <strong>{{ team.name }}</strong> in <strong>{{ event.name }}</strong>.
+                Any team member can edit and save this shared draft.
+            </p>
+        </div>
+
+        <form method="POST" action="{% url 'submission_edit' team_id=team.id %}">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Project Title -->
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}" class="form-label">
+                    Project Title <span style="color: #f87171;">*</span>
+                </label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                    <span style="color: #f87171; font-size: 0.85rem;">{{ form.title.errors.0 }}</span>
+                {% endif %}
+                <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+                    A catchy, descriptive name for your hackathon project.
+                </small>
+            </div>
+
+            <!-- Track Selection -->
+            <div class="form-group">
+                <label for="{{ form.track.id_for_label }}" class="form-label">
+                    Hackathon Track / Category
+                </label>
+                {{ form.track }}
+                {% if form.track.errors %}
+                    <span style="color: #f87171; font-size: 0.85rem;">{{ form.track.errors.0 }}</span>
+                {% endif %}
+                <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+                    Select which category/track your project is competing in.
+                </small>
+            </div>
+
+            <!-- Project Description -->
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}" class="form-label">
+                    Project Description <span style="color: #f87171;">*</span>
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <span style="color: #f87171; font-size: 0.85rem;">{{ form.description.errors.0 }}</span>
+                {% endif %}
+                <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+                    Explain what problem you are solving, architecture, technologies used, and challenges overcome.
+                </small>
+            </div>
+
+            <!-- Repository URL -->
+            <div class="form-group">
+                <label for="{{ form.repo_url.id_for_label }}" class="form-label">
+                    Source Code Repository URL <span style="color: #f87171;">*</span>
+                </label>
+                {{ form.repo_url }}
+                {% if form.repo_url.errors %}
+                    <span style="color: #f87171; font-size: 0.85rem;">{{ form.repo_url.errors.0 }}</span>
+                {% endif %}
+                <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+                    Public link to your GitHub, GitLab, or Git repository. Required for final submission.
+                </small>
+            </div>
+
+            <!-- Demo / Video URL -->
+            <div class="form-group">
+                <label for="{{ form.demo_url.id_for_label }}" class="form-label">
+                    Live Demo / Video Walkthrough URL (Optional)
+                </label>
+                {{ form.demo_url }}
+                {% if form.demo_url.errors %}
+                    <span style="color: #f87171; font-size: 0.85rem;">{{ form.demo_url.errors.0 }}</span>
+                {% endif %}
+                <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.25rem;">
+                    Optional link to a live deployed instance, YouTube/Loom video demo, or slide deck.
+                </small>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+                    💾 Save Project Draft
+                </button>
+                <a href="{% url 'team_submission_status' team_id=team.id %}" class="btn btn-secondary">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

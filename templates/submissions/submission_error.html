@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="max-width: 620px; margin: 3rem auto;">
+    <div class="card" style="border-color: rgba(244, 63, 94, 0.4); text-align: center; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
+        <div style="font-size: 3.5rem; margin-bottom: 1rem;">⚠️</div>
+        <h2 style="color: #f87171; margin-bottom: 0.75rem;">{{ title }}</h2>
+        <p style="color: #cbd5e1; font-size: 1.05rem; line-height: 1.6; margin-bottom: 2rem;">
+            {{ error_message }}
+        </p>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            {% if team %}
+                <a href="{% url 'team_submission_status' team_id=team.id %}" class="btn btn-secondary">
+                    &larr; View Team Submission Status
+                </a>
+                <a href="{% url 'team_detail' team_id=team.id %}" class="btn btn-secondary">
+                    Team Roster
+                </a>
+            {% elif event %}
+                <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary">
+                    &larr; Back to {{ event.name }}
+                </a>
+            {% else %}
+                <a href="{% url 'event_list' %}" class="btn btn-secondary">
+                    &larr; Explore Hackathons
+                </a>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="btn btn-primary">
+                Return to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
