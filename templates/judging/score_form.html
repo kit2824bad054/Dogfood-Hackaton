@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Evaluate: {{ submission.title }} - Dogfood Judging{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+    <a href="{% url 'judge_dashboard' %}" style="color: var(--text-secondary); text-decoration: none;">&larr; Back to Judge Dashboard</a>
+    <span>/</span>
+    <span style="color: var(--text-primary);">Evaluating {{ submission.title }}</span>
+</div>
+
+<!-- Project Context Card -->
+<div class="card" style="padding: 2rem; margin-bottom: 2rem; border-left: 4px solid var(--primary);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                <span class="role-badge role-organizer" style="font-size: 0.75rem;">
+                    🎪 {{ event.name }}
+                </span>
+                {% if submission.track %}
+                    <span class="role-badge role-participant" style="font-size: 0.75rem;">
+                        🎯 {{ submission.track.name }}
+                    </span>
+                {% endif %}
+                <span class="status-pill status-draft" style="font-size: 0.75rem;">
+                    Status: {{ assignment.get_status_display }}
+                </span>
+            </div>
+
+            <h1 style="font-size: 1.85rem; margin-bottom: 0.5rem; color: #ffffff;">
+                {{ submission.title }}
+            </h1>
+
+            <p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 1rem;">
+                Built by Team <strong style="color: #ffffff;">{{ submission.team.name }}</strong>
+                &bull; Submitted on {{ submission.submitted_at|date:"F d, Y" }}
+            </p>
+
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.25rem;">
+                {{ submission.description }}
+            </p>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                {% if submission.repo_url %}
+                    <a href="{{ submission.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" id="repo-link">
+                        💻 Source Repository &nearr;
+                    </a>
+                {% endif %}
+                {% if submission.demo_url %}
+                    <a href="{{ submission.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" id="demo-link">
+                        🌐 Live Project Demo &nearr;
+                    </a>
+                {% endif %}
+                <a href="{% url 'gallery_detail' submission_id=submission.id %}" target="_blank" class="btn btn-secondary btn-sm">
+                    📖 Full Showcase Details &nearr;
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if form_error %}
+    <div class="card" style="padding: 1.25rem; margin-bottom: 1.5rem; background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); color: #fb7185;">
+        <strong>⚠️ Evaluation Incomplete:</strong> {{ form_error }}
+    </div>
+{% endif %}
+
+<!-- Scoring Form -->
+<form method="POST" action="{% url 'judge_score_submission' assignment_id=assignment.id %}" id="scoring-form">
+    {% csrf_token %}
+
+    <div style="margin-bottom: 1.5rem;">
+        <h2>Evaluation Rubric</h2>
+        <p style="font-size: 0.95rem; margin-top: 0.25rem;">
+            Score each criterion according to the official standards. You can save your progress as a draft, or finalize and submit when all criteria are scored.
+        </p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
+        {% for criterion in rubric_criteria %}
+            {% with existing_score=existing_scores|dictsort:criterion.id %}
+            <div class="card" style="padding: 1.75rem; margin-bottom: 0; {% if errors|dictsort:criterion.id %}border-color: #f43f5e;{% endif %}" id="criterion-card-{{ criterion.id }}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <h3 style="font-size: 1.2rem; margin: 0;">{{ criterion.name }}</h3>
+                            <span class="role-badge role-judge" style="font-size: 0.75rem;">
+                                Weight: {{ criterion.weight }}%
+                            </span>
+                        </div>
+                        {% if criterion.description %}
+                            <p style="font-size: 0.9rem; color: #94a3b8; margin: 0;">
+                                {{ criterion.description }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Scale Range:</span>
+                        <div style="font-weight: 700; color: #ffffff; font-size: 1.1rem;">
+                            0 to {{ criterion.max_score }} pts
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Controls -->
+                <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1.5rem; align-items: start;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="score_{{ criterion.id }}" class="form-label">
+                            Rating Score <span style="color: #f87171;">*</span>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="score_{{ criterion.id }}" 
+                            name="score_{{ criterion.id }}" 
+                            min="0" 
+                            max="{{ criterion.max_score }}" 
+                            step="0.1" 
+                            placeholder="0 - {{ criterion.max_score }}"
+                            {% for cid, score_obj in existing_scores.items %}
+                                {% if cid == criterion.id %}value="{{ score_obj.raw_score }}"{% endif %}
+                            {% endfor %}
+                            style="font-size: 1.1rem; font-weight: 700;"
+                        >
+                        {% for cid, err in errors.items %}
+                            {% if cid == criterion.id %}
+                                <div style="color: #f87171; font-size: 0.8rem; margin-top: 0.35rem;">
+                                    {{ err }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="comment_{{ criterion.id }}" class="form-label">
+                            Feedback / Observations (Optional)
+                        </label>
+                        <textarea 
+                            id="comment_{{ criterion.id }}" 
+                            name="comment_{{ criterion.id }}" 
+                            rows="2" 
+                            placeholder="Justify rating or note key strengths/weaknesses..."
+                        >{% for cid, score_obj in existing_scores.items %}{% if cid == criterion.id %}{{ score_obj.comment }}{% endif %}{% endfor %}</textarea>
+                    </div>
+                </div>
+            </div>
+            {% endwith %}
+        {% endfor %}
+    </div>
+
+    <!-- Action Bar -->
+    <div class="card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <span style="font-size: 0.9rem; color: var(--text-muted);">
+                💡 Tip: Once you click <strong>Submit & Complete Scoring</strong>, your evaluation becomes locked to guarantee scoring integrity.
+            </span>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button type="submit" name="action" value="save_draft" class="btn btn-secondary" id="btn-save-draft">
+                💾 Save as Draft (Partial)
+            </button>
+            <button type="submit" name="action" value="submit_complete" class="btn btn-primary" id="btn-submit-complete">
+                ✅ Submit & Complete Scoring
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

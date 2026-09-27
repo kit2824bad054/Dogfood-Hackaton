@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Dogfood Platform - Hackathon & Judging Hub{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐕</text></svg>">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -17,11 +18,12 @@
                     <span class="brand-title">Dogfood Platform</span>
                 </div>
             </a>
-            <span class="brand-tag">Phase 3: Events</span>
+            <span class="brand-tag">T1 Platform</span>
         </div>
 
         <nav class="main-nav">
             <a href="{% url 'event_list' %}" class="nav-link">Explore Hackathons</a>
+            <a href="{% url 'gallery_list' %}" class="nav-link">Public Gallery</a>
 
             {% if request.user.is_authenticated %}
                 {% if request.user.role == 'organizer' or request.user.role == 'admin' or request.user.is_superuser %}
@@ -68,6 +70,7 @@
                 System Operational
             </span>
             <a href="{% url 'event_list' %}">Events</a>
+            <a href="{% url 'gallery_list' %}">Gallery</a>
             <a href="{% url 'dashboard' %}">Dashboard</a>
             {% if request.user.is_authenticated %}
                 <a href="{% url 'logout' %}">Log Out</a>

@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}Project Gallery - Dogfood Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Showcase Header -->
+<div class="hero-banner">
+    <div style="max-width: 700px;">
+        <span class="role-badge role-judge" style="margin-bottom: 0.75rem; display: inline-flex;">
+            🚀 Public Showcase & Gallery
+        </span>
+        <h1 style="margin-bottom: 0.75rem;">Discover Frontier Hackathon Creations</h1>
+        <p style="font-size: 1.05rem; color: #cbd5e1; margin-bottom: 0;">
+            Explore submitted solutions, inspect live demos, and review codebases across all hackathons. All publicly visible submissions from enabled events are showcased here.
+        </p>
+    </div>
+
+    <div class="hero-stats">
+        <div class="stat-item">
+            <span class="stat-value" id="stat-count">{{ total_count }}</span>
+            <span class="stat-label">Showcased Projects</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">{{ available_events|length }}</span>
+            <span class="stat-label">Featured Events</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">100%</span>
+            <span class="stat-label">Public Access</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value">Verified</span>
+            <span class="stat-label">Submitted Only</span>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filtering Bar -->
+<div class="card" style="padding: 1.5rem; margin-bottom: 2rem;">
+    <form method="GET" action="{% url 'gallery_list' %}" id="gallery-filter-form" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; align-items: flex-end;">
+            <!-- Keyword Search -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="search-input" class="form-label" style="font-size: 0.85rem;">Search Projects</label>
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    name="q" 
+                    placeholder="Search by title or description..." 
+                    value="{{ search_query }}"
+                >
+            </div>
+
+            <!-- Event Filter -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="event-select" class="form-label" style="font-size: 0.85rem;">Filter by Event</label>
+                <select id="event-select" name="event" onchange="this.form.submit()">
+                    <option value="">All Events ({{ available_events|length }})</option>
+                    {% for ev in available_events %}
+                        <option value="{{ ev.slug }}" {% if selected_event and selected_event.slug == ev.slug or selected_event_param == ev.slug or selected_event_param == ev.id|stringformat:"i" %}selected{% endif %}>
+                            {{ ev.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Track Filter -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="track-select" class="form-label" style="font-size: 0.85rem;">Filter by Track</label>
+                <select id="track-select" name="track" onchange="this.form.submit()">
+                    <option value="">All Tracks</option>
+                    {% for tr in available_tracks %}
+                        <option value="{{ tr.id }}" {% if selected_track and selected_track.id == tr.id or selected_track_param == tr.id|stringformat:"i" or selected_track_param == tr.name %}selected{% endif %}>
+                            {{ tr.name }} {% if not selected_event %}({{ tr.event.name }}){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.72rem 1.2rem;">
+                    Filter
+                </button>
+                {% if search_query or selected_event_param or selected_track_param %}
+                    <a href="{% url 'gallery_list' %}" class="btn btn-secondary" style="padding: 0.72rem 1rem;" title="Reset filters">
+                        Reset
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if search_query or selected_event or selected_track %}
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle); font-size: 0.85rem;">
+                <span style="color: var(--text-muted);">Active Filters:</span>
+                {% if selected_event %}
+                    <span class="role-badge role-organizer" style="font-size: 0.75rem;">
+                        Event: {{ selected_event.name }}
+                    </span>
+                {% endif %}
+                {% if selected_track %}
+                    <span class="role-badge role-participant" style="font-size: 0.75rem;">
+                        Track: {{ selected_track.name }}
+                    </span>
+                {% endif %}
+                {% if search_query %}
+                    <span class="role-badge role-judge" style="font-size: 0.75rem;">
+                        Query: &ldquo;{{ search_query }}&rdquo;
+                    </span>
+                {% endif %}
+                <a href="{% url 'gallery_list' %}" style="color: #f87171; text-decoration: underline; font-size: 0.8rem; margin-left: 0.5rem;">
+                    Clear all filters
+                </a>
+            </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Project Submissions Grid -->
+{% if submissions %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;" id="gallery-grid">
+        {% for sub in submissions %}
+            <div class="card interactive-card" style="display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 0; padding: 1.75rem;" id="project-card-{{ sub.id }}">
+                <div>
+                    <!-- Header Badges -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                        <span class="status-pill status-open" style="font-size: 0.7rem; padding: 0.15rem 0.55rem;">
+                            <span class="status-dot"></span> {{ sub.event.name }}
+                        </span>
+                        {% if sub.track %}
+                            <span class="role-badge role-participant" style="font-size: 0.7rem; padding: 0.15rem 0.55rem;">
+                                {{ sub.track.name }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Project Title -->
+                    <h3 style="margin-bottom: 0.6rem; font-size: 1.25rem;">
+                        <a href="{% url 'gallery_detail' submission_id=sub.id %}" style="color: #ffffff; text-decoration: none;" class="gallery-title-link">
+                            {{ sub.title }}
+                        </a>
+                    </h3>
+
+                    <!-- Short Description Excerpt -->
+                    <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.25rem;">
+                        {{ sub.description|truncatewords:24 }}
+                    </p>
+                </div>
+
+                <!-- Footer Meta Details -->
+                <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem; margin-top: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; font-size: 0.85rem;">
+                        <div>
+                            <span style="color: var(--text-muted);">Team:</span>
+                            <strong style="color: #cbd5e1; margin-left: 0.25rem;">{{ sub.team.name }}</strong>
+                        </div>
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">
+                            {{ sub.team.memberships.count }} member{{ sub.team.memberships.count|pluralize }}
+                        </span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            {% if sub.repo_url %}
+                                <a href="{{ sub.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" title="View Source Code">
+                                    💻 Code &nearr;
+                                </a>
+                            {% endif %}
+                            {% if sub.demo_url %}
+                                <a href="{{ sub.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" title="View Live Demo">
+                                    🌐 Demo &nearr;
+                                </a>
+                            {% endif %}
+                        </div>
+
+                        <a href="{% url 'gallery_detail' submission_id=sub.id %}" class="btn btn-primary btn-sm" style="font-size: 0.8rem;">
+                            View Details &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 4rem 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+        <h3 style="margin-bottom: 0.5rem;">No Submitted Projects Found</h3>
+        <p style="max-width: 480px; margin: 0 auto 1.5rem auto; color: var(--text-secondary);">
+            {% if search_query or selected_event_param or selected_track_param %}
+                No submitted projects match your search criteria. Try clearing or relaxing your filters.
+            {% else %}
+                There are currently no public project submissions available from gallery-enabled events.
+            {% endif %}
+        </p>
+        {% if search_query or selected_event_param or selected_track_param %}
+            <a href="{% url 'gallery_list' %}" class="btn btn-secondary">
+                Reset All Filters
+            </a>
+        {% else %}
+            <a href="{% url 'event_list' %}" class="btn btn-primary">
+                Explore Active Hackathons
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

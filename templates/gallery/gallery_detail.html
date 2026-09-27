@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ submission.title }} - Dogfood Gallery{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb navigation -->
+<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+    <a href="{% url 'gallery_list' %}" style="color: var(--text-secondary); text-decoration: none;">&larr; Back to Public Gallery</a>
+    <span>/</span>
+    <a href="{% url 'event_detail' slug=event.slug %}" style="color: var(--text-secondary); text-decoration: none;">{{ event.name }}</a>
+    <span>/</span>
+    <span style="color: var(--text-primary);">{{ submission.title }}</span>
+</div>
+
+<!-- Project Showcase Header -->
+<div class="card" style="padding: 2.25rem; margin-bottom: 2rem; position: relative; overflow: hidden;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">
+            <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                <span class="status-pill status-open">
+                    <span class="status-dot"></span> Submitted & Verified
+                </span>
+                <a href="{% url 'event_detail' slug=event.slug %}" style="text-decoration: none;">
+                    <span class="role-badge role-organizer">
+                        🎪 {{ event.name }}
+                    </span>
+                </a>
+                {% if track %}
+                    <span class="role-badge role-participant">
+                        🎯 {{ track.name }}
+                    </span>
+                {% endif %}
+            </div>
+
+            <h1 style="font-size: 2.2rem; margin-bottom: 0.75rem; color: #ffffff;" id="project-title">
+                {{ submission.title }}
+            </h1>
+
+            <p style="font-size: 1.05rem; color: #cbd5e1; margin-bottom: 1.25rem;">
+                Built by Team <strong style="color: #ffffff;">{{ team.name }}</strong>
+                {% if submission.submitted_at %}
+                    &bull; Submitted on {{ submission.submitted_at|date:"F d, Y \a\t g:i A" }}
+                {% endif %}
+            </p>
+
+            <!-- Action buttons for external resources -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                {% if submission.repo_url %}
+                    <a href="{{ submission.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="repo-url-link">
+                        💻 View Source Repository &nearr;
+                    </a>
+                {% endif %}
+                {% if submission.demo_url %}
+                    <a href="{{ submission.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" id="demo-url-link">
+                        🌐 Live Project Demo &nearr;
+                    </a>
+                {% endif %}
+                <a href="{% url 'gallery_list' %}" class="btn btn-secondary">
+                    Browse All Projects
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;" id="detail-layout">
+    <!-- Main Column: Full Project Description -->
+    <div>
+        <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+            <h2 style="font-size: 1.4rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>📖</span> Project Overview & Architecture
+            </h2>
+            <div style="color: var(--text-primary); font-size: 1.05rem; line-height: 1.8; white-space: pre-line;" id="project-description">
+                {{ submission.description }}
+            </div>
+        </div>
+
+        {% if track and track.description %}
+            <div class="card" style="padding: 1.75rem; margin-bottom: 2rem;">
+                <h3 style="font-size: 1.15rem; margin-bottom: 0.75rem; color: #cbd5e1;">
+                    Track Category: {{ track.name }}
+                </h3>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">
+                    {{ track.description }}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar Column: Team Members & Event Context -->
+    <div>
+        <!-- Team Members Card -->
+        <div class="card" style="padding: 1.75rem; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.2rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>👥</span> Team {{ team.name }}
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                {{ team_members|length }} Member{{ team_members|length|pluralize }} Collaborated on this project
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;" id="team-members-list">
+                {% for member in team_members %}
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <span style="font-size: 1.1rem;">🧑‍💻</span>
+                            <div>
+                                <strong style="color: #ffffff; font-size: 0.95rem;">{{ member.username }}</strong>
+                                {% if member == team.created_by %}
+                                    <span style="font-size: 0.75rem; color: #a5b4fc; display: block;">Team Lead</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <span class="role-badge role-participant" style="font-size: 0.7rem;">
+                            {{ member.get_role_display }}
+                        </span>
+                    </div>
+                {% empty %}
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">No members recorded.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Event Summary Card -->
+        <div class="card" style="padding: 1.75rem;">
+            <h3 style="font-size: 1.2rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🎪</span> Hackathon Details
+            </h3>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase;">Event</span>
+                    <a href="{% url 'event_detail' slug=event.slug %}" style="font-weight: 600; color: #ffffff;">
+                        {{ event.name }} &rarr;
+                    </a>
+                </div>
+
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase;">Status</span>
+                    {% if event.status == 'open' %}
+                        <span class="indicator-open">&bull; In Progress / Open</span>
+                    {% else %}
+                        <span class="indicator-closed">&bull; Concluded / Closed</span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase;">Submission Deadline</span>
+                    <span style="color: #cbd5e1;">{{ event.submission_deadline|date:"M d, Y \a\t g:i A" }}</span>
+                </div>
+
+                {% if event.prizes.exists %}
+                    <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; margin-top: 0.25rem;">
+                        <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.4rem;">Prizes Competed For</span>
+                        {% for prize in event.prizes.all|slice:":2" %}
+                            <div style="font-size: 0.85rem; color: #fbbf24; margin-bottom: 0.2rem;">
+                                🏆 {{ prize.title }}: {{ prize.description }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 1.25rem;">
+                <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary btn-sm" style="width: 100%; text-align: center;">
+                    View Event Overview &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media (max-width: 800px) {
+    #detail-layout {
+        grid-template-columns: 1fr !important;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Judge Dashboard - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div class="card" style="position: relative; overflow: hidden; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span class="role-badge role-judge" style="font-size: 0.85rem;">⚖️ Judge Console</span>
+            </div>
+
+            <h1 style="margin-bottom: 0.5rem;">Assigned Evaluations</h1>
+            <p style="margin: 0; font-size: 1rem; color: #cbd5e1;">
+                Welcome, Judge <strong>{{ request.user.username }}</strong>. Below are your assigned hackathon submissions.
+                Evaluations are strictly isolated: you evaluate independently without viewing other judges' scores.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <a href="{% url 'gallery_list' %}" class="btn btn-secondary btn-sm">Public Gallery</a>
+            <a href="{% url 'event_list' %}" class="btn btn-secondary btn-sm">Explore Events</a>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="hero-stats" style="margin-top: 1.5rem; padding-top: 1.25rem;">
+        <div class="stat-item">
+            <span class="stat-value">{{ total_count }}</span>
+            <span class="stat-label">Total Assigned</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" style="color: #34d399;">{{ completed_count }}</span>
+            <span class="stat-label">Completed</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" style="color: #60a5fa;">{{ in_progress_count }}</span>
+            <span class="stat-label">In Progress</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" style="color: #fbbf24;">{{ not_started_count }}</span>
+            <span class="stat-label">Not Started</span>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    <div style="margin-bottom: 1.5rem;">
+        {% for message in messages %}
+            <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 0.75rem; border-left: 4px solid {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' %}#f43f5e{% else %}#6366f1{% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Assigned Submissions Table / Cards -->
+{% if assignments %}
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        {% for item in assignments %}
+            <div class="card interactive-card" style="padding: 1.75rem; margin-bottom: 0;" id="assignment-card-{{ item.id }}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 280px;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                            <span class="role-badge role-organizer" style="font-size: 0.75rem;">
+                                🎪 {{ item.submission.event.name }}
+                            </span>
+                            {% if item.submission.track %}
+                                <span class="role-badge role-participant" style="font-size: 0.75rem;">
+                                    🎯 {{ item.submission.track.name }}
+                                </span>
+                            {% endif %}
+
+                            {% if item.status == 'completed' %}
+                                <span class="status-pill status-open" style="font-size: 0.75rem;">
+                                    <span class="status-dot"></span> Completed & Locked
+                                </span>
+                            {% elif item.status == 'in_progress' %}
+                                <span class="status-pill" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 0.75rem;">
+                                    <span class="status-dot" style="background: #3b82f6;"></span> In Progress ({{ item.scored_criteria_count }}/{{ item.total_criteria_count }} scored)
+                                </span>
+                            {% else %}
+                                <span class="status-pill status-draft" style="font-size: 0.75rem;">
+                                    <span class="status-dot"></span> Not Started
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <h3 style="margin-bottom: 0.4rem; font-size: 1.3rem;">
+                            {{ item.submission.title }}
+                        </h3>
+
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.85rem;">
+                            Team <strong style="color: #ffffff;">{{ item.submission.team.name }}</strong>
+                            &bull; Submitted on {{ item.submission.submitted_at|date:"M d, Y" }}
+                        </p>
+
+                        <p style="color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">
+                            {{ item.submission.description|truncatewords:28 }}
+                        </p>
+
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                            {% if item.submission.repo_url %}
+                                <a href="{{ item.submission.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;">
+                                    💻 Code Repository &nearr;
+                                </a>
+                            {% endif %}
+                            {% if item.submission.demo_url %}
+                                <a href="{{ item.submission.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;">
+                                    🌐 Live Demo &nearr;
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'gallery_detail' submission_id=item.submission.id %}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;">
+                                📖 Showcase Page &nearr;
+                            </a>
+                        </div>
+                    </div>
+
+                    <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+                        {% if item.status == 'completed' %}
+                            <a href="{% url 'judge_score_submission' assignment_id=item.id %}" class="btn btn-secondary">
+                                👁️ View Scores (Locked)
+                            </a>
+                            <span style="font-size: 0.75rem; color: #34d399;">
+                                Submitted on {{ item.completed_at|date:"M d, g:i A" }}
+                            </span>
+                        {% elif item.status == 'in_progress' %}
+                            <a href="{% url 'judge_score_submission' assignment_id=item.id %}" class="btn btn-primary">
+                                ✏️ Resume Evaluation &rarr;
+                            </a>
+                        {% else %}
+                            <a href="{% url 'judge_score_submission' assignment_id=item.id %}" class="btn btn-primary">
+                                ⭐ Start Evaluation &rarr;
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 4rem 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⚖️</div>
+        <h3 style="margin-bottom: 0.5rem;">No Submissions Assigned Yet</h3>
+        <p style="max-width: 500px; margin: 0 auto 1.5rem auto; color: var(--text-secondary);">
+            The event organizer has not run the judge assignment algorithm yet, or you have not been assigned to any project in this round.
+        </p>
+        <a href="{% url 'event_list' %}" class="btn btn-secondary">
+            Explore Active Hackathons
+        </a>
+    </div>
+{% endif %}
+{% endblock %}

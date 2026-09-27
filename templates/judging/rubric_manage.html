@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Rubric: {{ event.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+    <a href="{% url 'event_judging_progress' event_slug=event.slug %}" style="color: var(--text-secondary); text-decoration: none;">&larr; Back to Judging Progress</a>
+    <span>/</span>
+    <span style="color: var(--text-primary);">Rubric Definition</span>
+</div>
+
+<!-- Header Card -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                <span class="role-badge role-organizer" style="font-size: 0.8rem;">
+                    🎪 Rubric Management
+                </span>
+                {% if is_valid_rubric %}
+                    <span class="status-pill status-open" style="font-size: 0.75rem;">
+                        <span class="status-dot"></span> Valid (Sum: 100.00%)
+                    </span>
+                {% else %}
+                    <span class="status-pill status-closed" style="font-size: 0.75rem;">
+                        <span class="status-dot"></span> Incomplete (Sum: {{ total_weight }}% / 100%)
+                    </span>
+                {% endif %}
+            </div>
+
+            <h1 style="margin-bottom: 0.5rem; font-size: 2rem;">Evaluation Rubric &bull; {{ event.name }}</h1>
+            <p style="margin: 0; color: #cbd5e1; font-size: 1rem;">
+                Define evaluation criteria and percentage weights for this event. 
+                <strong style="color: #ffffff;">Rule: All criteria weights must sum to exactly 100.00%.</strong>
+            </p>
+        </div>
+
+        <a href="{% url 'event_judging_progress' event_slug=event.slug %}" class="btn btn-secondary btn-sm">
+            View Judging Progress &rarr;
+        </a>
+    </div>
+</div>
+
+{% if messages %}
+    <div style="margin-bottom: 1.5rem;">
+        {% for message in messages %}
+            <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 0.75rem; border-left: 4px solid {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' %}#f43f5e{% else %}#6366f1{% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Criteria List -->
+<div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="margin: 0; font-size: 1.3rem;">Current Rubric Criteria</h3>
+        <span style="font-size: 1.1rem; font-weight: 700; color: {% if is_valid_rubric %}#34d399{% else %}#fb7185{% endif %};">
+            Total Weight: {{ total_weight }}% / 100.00%
+        </span>
+    </div>
+
+    {% if criteria %}
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for criterion in criteria %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); flex-wrap: wrap; gap: 1rem;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
+                            <strong style="color: #ffffff; font-size: 1.1rem;">{{ criterion.name }}</strong>
+                            <span class="role-badge role-judge" style="font-size: 0.75rem;">
+                                Weight: {{ criterion.weight }}%
+                            </span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                Max Score: {{ criterion.max_score }}
+                            </span>
+                        </div>
+                        {% if criterion.description %}
+                            <p style="margin: 0; font-size: 0.9rem; color: #94a3b8;">
+                                {{ criterion.description }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <form method="POST" action="{% url 'event_rubric_manage' event_slug=event.slug %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_criterion">
+                            <input type="hidden" name="criterion_id" value="{{ criterion.id }}">
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to remove this criterion?');">
+                                Remove
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted); margin: 0;">
+            No rubric criteria defined yet. Add criteria below until the total weight reaches 100.00%.
+        </p>
+    {% endif %}
+</div>
+
+<!-- Add Criterion Form -->
+<div class="card" style="padding: 2rem;">
+    <h3 style="font-size: 1.3rem; margin-bottom: 1.25rem;">+ Add Rubric Criterion</h3>
+
+    <form method="POST" action="{% url 'event_rubric_manage' event_slug=event.slug %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_criterion">
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="id_name" class="form-label">Criterion Name</label>
+                <input type="text" id="id_name" name="name" placeholder="e.g. Technical Execution & Architecture" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="id_weight" class="form-label">Percentage Weight (%)</label>
+                <input type="number" id="id_weight" name="weight" step="0.01" min="0.01" max="100.00" placeholder="e.g. 40.00" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="id_max_score" class="form-label">Max Score (Scale)</label>
+                <input type="number" id="id_max_score" name="max_score" value="10" min="1" max="100" required>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="id_description" class="form-label">Description & Scoring Guidance (Optional)</label>
+            <textarea id="id_description" name="description" rows="2" placeholder="Explain what judges should look for when scoring this criterion..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btn-add-criterion">
+            + Save Criterion
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'apps.teams',
     'apps.submissions',
     'apps.gallery',
+    'apps.judging',
 ]
 
 MIDDLEWARE = [

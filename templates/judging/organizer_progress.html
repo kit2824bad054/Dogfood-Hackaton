@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}Judging Progress: {{ event.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+    <a href="{% url 'event_detail' slug=event.slug %}" style="color: var(--text-secondary); text-decoration: none;">&larr; {{ event.name }}</a>
+    <span>/</span>
+    <span style="color: var(--text-primary);">Judging Operations & Progress</span>
+</div>
+
+<!-- Header Card -->
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                <span class="role-badge role-organizer" style="font-size: 0.8rem;">
+                    🎪 Organizer Oversight
+                </span>
+                <span class="status-pill status-open" style="font-size: 0.75rem;">
+                    {{ event.get_status_display }}
+                </span>
+            </div>
+
+            <h1 style="margin-bottom: 0.5rem; font-size: 2rem;">{{ event.name }} &bull; Judging Hub</h1>
+            <p style="margin: 0; color: #cbd5e1; font-size: 1rem;">
+                Oversee judge assignments, monitor completion rates, normalize cross-judge bias, and export final project rankings.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="{% url 'event_rubric_manage' event_slug=event.slug %}" class="btn btn-secondary btn-sm">
+                📋 Manage Rubric ({{ rubric_criteria|length }} Criteria)
+            </a>
+            <a href="{% url 'export_raw_scores_csv' event_slug=event.slug %}" class="btn btn-secondary btn-sm" id="export-raw-csv">
+                📥 Export Raw Scores (CSV)
+            </a>
+            <a href="{% url 'export_rankings_csv' event_slug=event.slug %}" class="btn btn-primary btn-sm" id="export-rankings-csv">
+                🏆 Export Rankings (CSV)
+            </a>
+        </div>
+    </div>
+
+    <!-- Overall Metrics Grid -->
+    <div class="hero-stats" style="margin-top: 1.5rem; padding-top: 1.25rem;">
+        <div class="stat-item">
+            <span class="stat-value">{{ progress.total_submissions }}</span>
+            <span class="stat-label">Total Submissions</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" style="color: #34d399;">{{ progress.fully_scored_submissions }}</span>
+            <span class="stat-label">Fully Scored Projects</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" style="color: #fbbf24;">{{ progress.pending_submissions }}</span>
+            <span class="stat-label">Pending Projects</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" style="color: #60a5fa;">{{ progress.overall_completion_pct }}%</span>
+            <span class="stat-label">Overall Completion</span>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    <div style="margin-bottom: 1.5rem;">
+        {% for message in messages %}
+            <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 0.75rem; border-left: 4px solid {% if message.tags == 'success' %}#10b981{% elif message.tags == 'warning' %}#f59e0b{% elif message.tags == 'error' %}#f43f5e{% else %}#6366f1{% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Action Controls: Judge Assignment & Normalization -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Judge Assignment Card -->
+    <div class="card" style="padding: 1.75rem; margin-bottom: 0;">
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">⚖️</span>
+            <h3 style="margin: 0; font-size: 1.2rem;">Assign Judges</h3>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Distribute submitted projects across registered judges using balanced round-robin scheduling. Conflict-of-interest checks automatically exclude judges from their own teams.
+        </p>
+
+        <form method="POST" action="{% url 'event_assign_judges' event_slug=event.slug %}">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                <div style="flex: 1;">
+                    <label for="n-judges" style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+                        Judges Per Project (N)
+                    </label>
+                    <input type="number" id="n-judges" name="n" min="1" max="10" value="3" style="width: 100%;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; padding-top: 1.5rem;">
+                    <input type="checkbox" id="clear-checkbox" name="clear" value="true">
+                    <label for="clear-checkbox" style="font-size: 0.85rem; color: #fb7185; cursor: pointer;">
+                        Reset Existing
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;" id="btn-assign-judges">
+                ⚡ Run Judge Assignment
+            </button>
+        </form>
+    </div>
+
+    <!-- Cross-Judge Score Normalization Card -->
+    <div class="card" style="padding: 1.75rem; margin-bottom: 0;">
+        <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem;">
+            <span style="font-size: 1.5rem;">📊</span>
+            <h3 style="margin: 0; font-size: 1.2rem;">Score Normalization</h3>
+        </div>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            Transform raw scores into normalized z-scores to eliminate systematic harshness or leniency between judges. Stores normalized values alongside raw scores for complete transparency.
+        </p>
+
+        <form method="POST" action="{% url 'event_normalize_scores' event_slug=event.slug %}">
+            {% csrf_token %}
+            <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-size: 0.85rem; color: #cbd5e1;">
+                ℹ️ Automatically executed when viewing rankings or generating CSV exports.
+            </div>
+            <button type="submit" class="btn btn-secondary" style="width: 100%;" id="btn-normalize-scores">
+                🔄 Recalculate Normalized Scores
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Judge Progress Roster -->
+<div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+    <h3 style="font-size: 1.3rem; margin-bottom: 1rem;">Per-Judge Progress Roster</h3>
+
+    {% if progress.judge_metrics %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                        <th style="padding: 0.75rem 1rem;">Judge</th>
+                        <th style="padding: 0.75rem 1rem;">Assigned Projects</th>
+                        <th style="padding: 0.75rem 1rem;">Completed</th>
+                        <th style="padding: 0.75rem 1rem;">Pending</th>
+                        <th style="padding: 0.75rem 1rem;">Progress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for jm in progress.judge_metrics %}
+                        <tr style="border-bottom: 1px solid var(--border-subtle);">
+                            <td style="padding: 1rem;">
+                                <strong style="color: #ffffff;">{{ jm.judge.username }}</strong>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">{{ jm.judge.email }}</span>
+                            </td>
+                            <td style="padding: 1rem; font-weight: 600;">{{ jm.total_assigned }}</td>
+                            <td style="padding: 1rem; color: #34d399; font-weight: 600;">{{ jm.completed }}</td>
+                            <td style="padding: 1rem; color: #fbbf24; font-weight: 600;">{{ jm.pending }}</td>
+                            <td style="padding: 1rem; min-width: 180px;">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div style="flex: 1; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 999px; overflow: hidden;">
+                                        <div style="width: {{ jm.completion_pct }}%; height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); border-radius: 999px;"></div>
+                                    </div>
+                                    <span style="font-size: 0.85rem; font-weight: 700;">{{ jm.completion_pct }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted); margin: 0;">
+            No judges have been assigned to this event yet. Use the <strong>Assign Judges</strong> tool above to assign submissions.
+        </p>
+    {% endif %}
+</div>
+
+<!-- Normalized Final Rankings -->
+<div class="card" style="padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="font-size: 1.3rem; margin: 0;">Normalized Project Rankings</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+                Calculated using z-score normalization across all rubric criteria and weights.
+            </p>
+        </div>
+
+        <a href="{% url 'export_rankings_csv' event_slug=event.slug %}" class="btn btn-secondary btn-sm">
+            📥 Download CSV
+        </a>
+    </div>
+
+    {% if rankings %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">
+                        <th style="padding: 0.75rem 1rem; width: 60px;">Rank</th>
+                        <th style="padding: 0.75rem 1rem;">Project & Team</th>
+                        <th style="padding: 0.75rem 1rem;">Track</th>
+                        <th style="padding: 0.75rem 1rem;">Judges Scored</th>
+                        <th style="padding: 0.75rem 1rem; text-align: right;">Final Weighted Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in rankings %}
+                        <tr style="border-bottom: 1px solid var(--border-subtle);">
+                            <td style="padding: 1rem;">
+                                {% if item.rank == 1 %}
+                                    <span class="role-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">🥇 1</span>
+                                {% elif item.rank == 2 %}
+                                    <span class="role-badge" style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4);">🥈 2</span>
+                                {% elif item.rank == 3 %}
+                                    <span class="role-badge" style="background: rgba(217, 119, 6, 0.2); color: #f59e0b; border: 1px solid rgba(217, 119, 6, 0.4);">🥉 3</span>
+                                {% else %}
+                                    <strong style="color: var(--text-muted); padding-left: 0.5rem;">#{{ item.rank }}</strong>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem;">
+                                <strong style="color: #ffffff; font-size: 1.05rem;">
+                                    {{ item.submission.title }}
+                                </strong>
+                                <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">
+                                    Team: {{ item.submission.team.name }}
+                                </span>
+                            </td>
+                            <td style="padding: 1rem;">
+                                {% if item.submission.track %}
+                                    <span class="role-badge role-participant" style="font-size: 0.75rem;">
+                                        {{ item.submission.track.name }}
+                                    </span>
+                                {% else %}
+                                    <span style="color: var(--text-muted);">General</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem;">
+                                <span style="color: {% if item.is_fully_judged %}#34d399{% else %}#fbbf24{% endif %}; font-weight: 600;">
+                                    {{ item.completed_judge_count }} / {{ item.judge_count }} completed
+                                </span>
+                            </td>
+                            <td style="padding: 1rem; text-align: right;">
+                                <span style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 800; color: #ffffff;">
+                                    {{ item.final_weighted_score }}
+                                </span>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">pts</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted); margin: 0;">
+            No submitted projects exist for this event yet.
+        </p>
+    {% endif %}
+</div>
+{% endblock %}

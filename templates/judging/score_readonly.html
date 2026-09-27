@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Locked Evaluation: {{ submission.title }} - Dogfood Judging{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+    <a href="{% url 'judge_dashboard' %}" style="color: var(--text-secondary); text-decoration: none;">&larr; Back to Judge Dashboard</a>
+    <span>/</span>
+    <span style="color: var(--text-primary);">Completed Evaluation for {{ submission.title }}</span>
+</div>
+
+<!-- Locked Status Banner -->
+<div class="card" style="padding: 1.5rem; margin-bottom: 2rem; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35);">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="font-size: 2.2rem;">🔒</div>
+            <div>
+                <h3 style="margin-bottom: 0.25rem; color: #34d399;">Evaluation Completed &amp; Locked</h3>
+                <p style="margin: 0; font-size: 0.9rem; color: #cbd5e1;">
+                    Your scores were officially submitted on {{ assignment.completed_at|date:"F d, Y \a\t g:i A" }}.
+                    To protect scoring integrity and prevent tampering, scores are locked.
+                    If revisions are required, an event organizer can reopen this evaluation.
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'judge_dashboard' %}" class="btn btn-secondary btn-sm">
+            &larr; Return to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Project Context -->
+<div class="card" style="padding: 1.75rem; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                <span class="role-badge role-organizer" style="font-size: 0.75rem;">
+                    🎪 {{ event.name }}
+                </span>
+                {% if submission.track %}
+                    <span class="role-badge role-participant" style="font-size: 0.75rem;">
+                        🎯 {{ submission.track.name }}
+                    </span>
+                {% endif %}
+            </div>
+
+            <h2 style="font-size: 1.6rem; margin-bottom: 0.4rem; color: #ffffff;">
+                {{ submission.title }}
+            </h2>
+            <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">
+                Team <strong>{{ submission.team.name }}</strong>
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            {% if submission.repo_url %}
+                <a href="{{ submission.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                    💻 Code Repository &nearr;
+                </a>
+            {% endif %}
+            {% if submission.demo_url %}
+                <a href="{{ submission.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                    🌐 Live Demo &nearr;
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Submitted Scores Summary Table -->
+<div class="card" style="padding: 2rem;">
+    <h3 style="font-size: 1.3rem; margin-bottom: 1.25rem;">Submitted Evaluation Ratings</h3>
+
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        {% for criterion in rubric_criteria %}
+            <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.25rem; background: rgba(15, 23, 42, 0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <strong style="color: #ffffff; font-size: 1.05rem;">{{ criterion.name }}</strong>
+                            <span class="role-badge role-judge" style="font-size: 0.75rem;">
+                                Weight: {{ criterion.weight }}%
+                            </span>
+                        </div>
+                        {% if criterion.description %}
+                            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                                {{ criterion.description }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); display: block;">Awarded Rating</span>
+                        {% for cid, score_obj in existing_scores.items %}
+                            {% if cid == criterion.id %}
+                                <div style="font-size: 1.4rem; font-weight: 800; color: #34d399;">
+                                    {{ score_obj.raw_score }} <span style="font-size: 0.9rem; color: var(--text-muted);">/ {{ criterion.max_score }}</span>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Comment -->
+                {% for cid, score_obj in existing_scores.items %}
+                    {% if cid == criterion.id and score_obj.comment %}
+                        <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; margin-top: 0.5rem; font-size: 0.9rem; color: #cbd5e1;">
+                            <span style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Judge Feedback:</span>
+                            <div style="margin-top: 0.25rem; font-style: italic;">
+                                &ldquo;{{ score_obj.comment }}&rdquo;
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

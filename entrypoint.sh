@@ -26,6 +26,10 @@ echo "PostgreSQL is ready and accepting connections!"
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
+# Seed demo data automatically
+echo "Seeding demo hackathons, accounts, teams, and submissions..."
+python manage.py seed_demo_data
+
 # Optionally create superuser if env vars are present
 if [ -n "$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
     echo "Creating superuser '$DJANGO_SUPERUSER_USERNAME'..."
