@@ -3,105 +3,169 @@
 {% block title %}{{ event.name }} - Dogfood Platform{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
-    <div>
-        <h2 style="margin: 0 0 0.5rem 0;">{{ event.name }}</h2>
-        <div style="font-size: 0.95rem; color: #718096;">
-            Organized by <strong>{{ event.created_by.username }}</strong> &bull; Created {{ event.created_at|date:"M d, Y" }}
-        </div>
-    </div>
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-        {% if event.status == 'open' %}
-            <span class="badge" style="background-color: #c6f6d5; color: #22543d; font-size: 0.9rem;">OPEN</span>
-        {% elif event.status == 'draft' %}
-            <span class="badge" style="background-color: #feebc8; color: #744210; font-size: 0.9rem;">DRAFT</span>
-        {% else %}
-            <span class="badge" style="background-color: #fed7d7; color: #742a2a; font-size: 0.9rem;">CLOSED</span>
-        {% endif %}
+<!-- Event Header Card -->
+<div class="card" style="position: relative; overflow: hidden;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                {% if event.status == 'open' %}
+                    <span class="status-pill status-open">
+                        <span class="status-dot"></span> OPEN FOR PARTICIPATION
+                    </span>
+                {% elif event.status == 'draft' %}
+                    <span class="status-pill status-draft">
+                        <span class="status-dot"></span> DRAFT MODE (Unpublished)
+                    </span>
+                {% else %}
+                    <span class="status-pill status-closed">
+                        <span class="status-dot"></span> EVENT CONCLUDED
+                    </span>
+                {% endif %}
 
-        {% if is_creator_or_admin %}
-            <a href="{% url 'event_edit' slug=event.slug %}" class="btn" style="background-color: #4a5568;">Edit Event</a>
-        {% endif %}
-    </div>
-</div>
+                {% if event.gallery_enabled %}
+                    <span class="role-badge role-judge" style="font-size: 0.75rem;">
+                        🖼️ Public Gallery Active
+                    </span>
+                {% endif %}
+            </div>
 
-<div style="background: #edf2f7; padding: 1.25rem; border-radius: 8px; margin-bottom: 2rem;">
-    <h4 style="margin: 0 0 0.75rem 0;">Schedule & Deadlines</h4>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; font-size: 0.95rem;">
-        <div>
-            <strong>Starts:</strong><br>{{ event.start_date|date:"F j, Y, g:i A" }}
+            <h1 style="margin-bottom: 0.5rem;">{{ event.name }}</h1>
+            <div style="color: var(--text-muted); font-size: 0.95rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <span>Hosted by <strong style="color: #ffffff;">@{{ event.created_by.username }}</strong></span>
+                <span>&bull;</span>
+                <span>Created on {{ event.created_at|date:"F j, Y" }}</span>
+                <span>&bull;</span>
+                <span>Slug: <code>{{ event.slug }}</code></span>
+            </div>
         </div>
-        <div>
-            <strong>Ends:</strong><br>{{ event.end_date|date:"F j, Y, g:i A" }}
-        </div>
-        <div>
-            <strong>Registration Deadline:</strong><br>
-            {{ event.registration_deadline|date:"F j, Y, g:i A" }}
-            {% if event.is_registration_open %}
-                <span style="color: #276749; font-weight: 600; display: block;">&bull; Registration Open</span>
-            {% else %}
-                <span style="color: #c53030; font-weight: 600; display: block;">&bull; Registration Closed</span>
+
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            {% if is_creator_or_admin %}
+                <a href="{% url 'event_edit' slug=event.slug %}" class="btn btn-secondary">
+                    ✏️ Edit Event Settings
+                </a>
             {% endif %}
-        </div>
-        <div>
-            <strong>Submission Deadline:</strong><br>
-            {{ event.submission_deadline|date:"F j, Y, g:i A" }}
-            {% if event.is_submission_open %}
-                <span style="color: #276749; font-weight: 600; display: block;">&bull; Submissions Open</span>
-            {% else %}
-                <span style="color: #c53030; font-weight: 600; display: block;">&bull; Submissions Closed</span>
-            {% endif %}
+            <a href="{% url 'event_list' %}" class="btn btn-secondary">
+                &larr; All Events
+            </a>
         </div>
     </div>
 </div>
 
-<div style="margin-bottom: 2rem;">
-    <h3>About This Hackathon</h3>
-    <div style="white-space: pre-line; line-height: 1.7; color: #2d3748;">
+<!-- Schedule & Deadlines Card -->
+<div class="card">
+    <h3 style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>📅</span> Hackathon Timeline & Milestones
+    </h3>
+
+    <div class="timeline-card">
+        <div class="timeline-item">
+            <span class="timeline-title">Event Starts</span>
+            <span class="timeline-date">{{ event.start_date|date:"F j, Y" }}</span>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">{{ event.start_date|date:"g:i A T" }}</span>
+        </div>
+
+        <div class="timeline-item">
+            <span class="timeline-title">Registration Deadline</span>
+            <span class="timeline-date">{{ event.registration_deadline|date:"F j, Y" }}</span>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">{{ event.registration_deadline|date:"g:i A T" }}</span>
+            <div style="margin-top: 0.35rem;">
+                {% if event.is_registration_open %}
+                    <span class="indicator-open">&bull; Registration Currently Open</span>
+                {% else %}
+                    <span class="indicator-closed">&bull; Registration Cutoff Passed</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <span class="timeline-title">Submission Deadline</span>
+            <span class="timeline-date">{{ event.submission_deadline|date:"F j, Y" }}</span>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">{{ event.submission_deadline|date:"g:i A T" }}</span>
+            <div style="margin-top: 0.35rem;">
+                {% if event.is_submission_open %}
+                    <span class="indicator-open">&bull; Submissions Accepted Now</span>
+                {% else %}
+                    <span class="indicator-closed">&bull; Submissions Cutoff Passed</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <span class="timeline-title">Event Closes</span>
+            <span class="timeline-date">{{ event.end_date|date:"F j, Y" }}</span>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">{{ event.end_date|date:"g:i A T" }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Description / Guidelines -->
+<div class="card">
+    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>📝</span> Overview & Guidelines
+    </h3>
+    <div style="line-height: 1.8; color: #cbd5e1; font-size: 1.02rem; white-space: pre-line;">
         {{ event.description }}
     </div>
 </div>
 
 <!-- Tracks Section -->
-<div style="margin-bottom: 2rem;">
-    <h3>Tracks ({{ tracks|length }})</h3>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🎯</span> Tracks & Themes ({{ tracks|length }})
+        </h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Choose a track for your team's project</span>
+    </div>
+
     {% if tracks %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+        <div class="tracks-grid">
             {% for track in tracks %}
-                <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; background: #fafafa;">
-                    <h4 style="margin: 0 0 0.5rem 0; color: #2b6cb0;">{{ track.name }}</h4>
-                    {% if track.description %}
-                        <p style="margin: 0; color: #4a5568; font-size: 0.95rem;">{{ track.description }}</p>
-                    {% endif %}
+                <div class="track-item">
+                    <h4 style="color: #ffffff; margin-bottom: 0.5rem;">{{ track.name }}</h4>
+                    <p style="font-size: 0.9rem; color: #94a3b8; margin: 0;">
+                        {{ track.description|default:"Open track for general project submissions." }}
+                    </p>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <p style="color: #718096; font-style: italic;">No specific tracks configured for this hackathon.</p>
+        <p style="color: var(--text-muted); font-style: italic;">No specific tracks assigned to this event.</p>
     {% endif %}
 </div>
 
 <!-- Prizes Section -->
-<div style="margin-bottom: 2rem;">
-    <h3>Prizes ({{ prizes|length }})</h3>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🏆</span> Prizes & Awards ({{ prizes|length }})
+        </h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Rank-ordered rewards</span>
+    </div>
+
     {% if prizes %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+        <div class="prizes-grid">
             {% for prize in prizes %}
-                <div style="border: 1px solid #cbd5e0; border-radius: 6px; padding: 1rem; background: #fffaf0; border-left: 4px solid #dd6b20;">
-                    <div style="font-size: 0.8rem; text-transform: uppercase; color: #c05621; font-weight: bold;">
-                        Rank #{{ prize.rank }}
-                    </div>
-                    <h4 style="margin: 0.25rem 0 0.5rem 0;">{{ prize.title }}</h4>
-                    <p style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #2d3748;">{{ prize.description }}</p>
+                <div class="prize-item">
+                    {% if prize.rank == 1 %}
+                        <span class="prize-rank prize-rank-1">🥇 1st Place</span>
+                    {% elif prize.rank == 2 %}
+                        <span class="prize-rank prize-rank-2">🥈 2nd Place</span>
+                    {% elif prize.rank == 3 %}
+                        <span class="prize-rank prize-rank-3">🥉 3rd Place</span>
+                    {% else %}
+                        <span class="prize-rank" style="background: rgba(255,255,255,0.1); color: #e2e8f0;">
+                            Rank #{{ prize.rank }}
+                        </span>
+                    {% endif %}
+
+                    <h4 style="margin: 0.35rem 0 0.5rem 0; color: #ffffff;">{{ prize.title }}</h4>
+                    <div class="prize-amount">{{ prize.description }}</div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <p style="color: #718096; font-style: italic;">No prizes announced yet.</p>
+        <p style="color: var(--text-muted); font-style: italic;">Prizes will be announced closer to the submission date.</p>
     {% endif %}
-</div>
-
-<div class="nav-links">
-    <a href="{% url 'event_list' %}">&larr; Back to all hackathons</a>
 </div>
 {% endblock %}

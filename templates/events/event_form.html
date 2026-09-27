@@ -3,169 +3,355 @@
 {% block title %}{{ title }} - Dogfood Platform{% endblock %}
 
 {% block content %}
-<h2>{{ title }}</h2>
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 1.85rem; margin-bottom: 0.35rem;">{{ title }}</h1>
+            <p style="margin: 0; font-size: 0.95rem;">Configure event details, timeline milestones, competitive tracks, and prize tiers.</p>
+        </div>
+        <div>
+            <button type="button" id="fill-sample-btn" class="btn btn-secondary btn-sm" style="border: 1px dashed var(--primary); color: #c7d2fe;">
+                ⚡ Auto-fill Sample Hackathon
+            </button>
+        </div>
+    </div>
+</div>
 
-<form method="post" novalidate>
+<form method="post" id="event-form" novalidate>
     {% csrf_token %}
 
     {% if form.non_field_errors %}
-        <ul class="errorlist">
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
+        <div class="card" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.1); padding: 1.25rem; margin-bottom: 1.5rem;">
+            <strong style="color: #fb7185;">Validation Errors:</strong>
+            <ul class="errorlist" style="margin-top: 0.5rem;">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- 1. General Details -->
+    <div class="card">
+        <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>ℹ️</span> 1. General Event Details
+        </h3>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.name.id_for_label }}">Hackathon Name *</label>
+            {{ form.name }}
+            {% if form.name.errors %}
+                <ul class="errorlist">{% for e in form.name.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+            {% endif %}
+            <span class="helptext">{{ form.name.help_text }}</span>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="{{ form.description.id_for_label }}">Description & Rules *</label>
+            {{ form.description }}
+            {% if form.description.errors %}
+                <ul class="errorlist">{% for e in form.description.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+            {% endif %}
+            <span class="helptext">{{ form.description.help_text }}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.status.id_for_label }}">Publishing Status *</label>
+                {{ form.status }}
+                {% if form.status.errors %}
+                    <ul class="errorlist">{% for e in form.status.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+                <span class="helptext">
+                    <strong>Draft:</strong> Hidden from the public; only you & admins can view.<br>
+                    <strong>Open:</strong> Visible to all users; accepts registrations & submissions.
+                </span>
+            </div>
+
+            <div class="form-group" style="display: flex; flex-direction: column; justify-content: center;">
+                <label class="form-label">Gallery Settings</label>
+                <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; background: rgba(15, 23, 42, 0.6); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                    {{ form.gallery_enabled }}
+                    <span style="font-size: 0.95rem; color: #ffffff;">Enable Public Gallery (Show submissions publicly)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Dates & Deadlines -->
+    <div class="card">
+        <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>⏱️</span> 2. Schedule & Deadlines
+        </h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">
+            Enforced server-side. Note: Once an event is 'Open' and started, core dates cannot be edited.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+            <div class="form-group">
+                <label class="form-label" for="{{ form.start_date.id_for_label }}">Event Start Date & Time *</label>
+                {{ form.start_date }}
+                {% if form.start_date.errors %}
+                    <ul class="errorlist">{% for e in form.start_date.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.end_date.id_for_label }}">Event End Date & Time *</label>
+                {{ form.end_date }}
+                {% if form.end_date.errors %}
+                    <ul class="errorlist">{% for e in form.end_date.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.registration_deadline.id_for_label }}">Registration Deadline *</label>
+                {{ form.registration_deadline }}
+                {% if form.registration_deadline.errors %}
+                    <ul class="errorlist">{% for e in form.registration_deadline.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.submission_deadline.id_for_label }}">Submission Deadline *</label>
+                {{ form.submission_deadline }}
+                {% if form.submission_deadline.errors %}
+                    <ul class="errorlist">{% for e in form.submission_deadline.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Inline Tracks Formset -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🎯</span> 3. Tracks & Themes
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+                    Define thematic categories that participants can choose from.
+                </p>
+            </div>
+            <button type="button" id="add-track-btn" class="btn btn-secondary btn-sm" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.4);">
+                + Add Another Track
+            </button>
+        </div>
+
+        {{ track_formset.management_form }}
+        {% if track_formset.non_form_errors %}
+            <ul class="errorlist">{% for e in track_formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
+
+        <div id="tracks-container" style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for track_form in track_formset %}
+                <div class="formset-card track-form-item">
+                    {{ track_form.id }}
+                    <div style="display: grid; grid-template-columns: 2fr 3fr auto; gap: 1rem; align-items: start;">
+                        <div>
+                            <label class="form-label">Track Title</label>
+                            {{ track_form.name }}
+                            {% if track_form.name.errors %}<ul class="errorlist">{% for e in track_form.name.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                        </div>
+                        <div>
+                            <label class="form-label">Track Description (Optional)</label>
+                            {{ track_form.description }}
+                            {% if track_form.description.errors %}<ul class="errorlist">{% for e in track_form.description.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                        </div>
+                        {% if track_form.instance.pk %}
+                            <div style="padding-top: 1.75rem;">
+                                <label style="color: #f87171; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                                    {{ track_form.DELETE }} Remove
+                                </label>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             {% endfor %}
-        </ul>
-    {% endif %}
-
-    <h3>Basic Information</h3>
-    <div class="form-group">
-        <label for="{{ form.name.id_for_label }}">Event Name:</label>
-        {{ form.name }}
-        {% if form.name.errors %}
-            <ul class="errorlist">{% for e in form.name.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-        {% endif %}
-    </div>
-
-    <div class="form-group">
-        <label for="{{ form.description.id_for_label }}">Description & Rules:</label>
-        {{ form.description }}
-        {% if form.description.errors %}
-            <ul class="errorlist">{% for e in form.description.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-        {% endif %}
-    </div>
-
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <div class="form-group">
-            <label for="{{ form.status.id_for_label }}">Event Status:</label>
-            {{ form.status }}
-            {% if form.status.errors %}
-                <ul class="errorlist">{% for e in form.status.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-            {% endif %}
-            <span class="helptext">Draft events are only visible to you. Open events are visible to all users.</span>
-        </div>
-
-        <div class="form-group" style="padding-top: 1.8rem;">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                {{ form.gallery_enabled }}
-                <span>Enable Public Gallery (Show submissions publicly)</span>
-            </label>
         </div>
     </div>
 
-    <h3 style="margin-top: 2rem;">Dates & Deadlines</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-        <div class="form-group">
-            <label for="{{ form.start_date.id_for_label }}">Start Date & Time:</label>
-            {{ form.start_date }}
-            {% if form.start_date.errors %}
-                <ul class="errorlist">{% for e in form.start_date.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            <label for="{{ form.end_date.id_for_label }}">End Date & Time:</label>
-            {{ form.end_date }}
-            {% if form.end_date.errors %}
-                <ul class="errorlist">{% for e in form.end_date.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            <label for="{{ form.registration_deadline.id_for_label }}">Registration Deadline:</label>
-            {{ form.registration_deadline }}
-            {% if form.registration_deadline.errors %}
-                <ul class="errorlist">{% for e in form.registration_deadline.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-            {% endif %}
-        </div>
-
-        <div class="form-group">
-            <label for="{{ form.submission_deadline.id_for_label }}">Submission Deadline:</label>
-            {{ form.submission_deadline }}
-            {% if form.submission_deadline.errors %}
-                <ul class="errorlist">{% for e in form.submission_deadline.errors %}<li>{{ e }}</li>{% endfor %}</ul>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Inline Tracks Formset -->
-    <h3 style="margin-top: 2.5rem;">Tracks / Themes</h3>
-    <p style="color: #718096; font-size: 0.9rem;">Add one or more tracks (e.g., AI/ML, Web3, FinTech).</p>
-    {{ track_formset.management_form }}
-    {% if track_formset.non_form_errors %}
-        <ul class="errorlist">{% for e in track_formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
-    {% endif %}
-
-    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
-        {% for track_form in track_formset %}
-            <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; background: #fafafa;">
-                {{ track_form.id }}
-                <div style="display: grid; grid-template-columns: 2fr 3fr auto; gap: 1rem; align-items: start;">
-                    <div>
-                        <label>Track Name:</label>
-                        {{ track_form.name }}
-                        {% if track_form.name.errors %}<ul class="errorlist">{% for e in track_form.name.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-                    </div>
-                    <div>
-                        <label>Description:</label>
-                        {{ track_form.description }}
-                        {% if track_form.description.errors %}<ul class="errorlist">{% for e in track_form.description.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-                    </div>
-                    {% if track_form.instance.pk %}
-                        <div style="padding-top: 1.8rem;">
-                            <label style="color: #e53e3e; font-size: 0.85rem;">
-                                {{ track_form.DELETE }} Delete
-                            </label>
-                        </div>
-                    {% endif %}
-                </div>
+    <!-- 4. Inline Prizes Formset -->
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <h3 style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🏆</span> 4. Prizes & Awards
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+                    Define awards with rank ordering (e.g. 1st Place, Best UI).
+                </p>
             </div>
-        {% endfor %}
-    </div>
+            <button type="button" id="add-prize-btn" class="btn btn-secondary btn-sm" style="color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);">
+                + Add Another Prize
+            </button>
+        </div>
 
-    <!-- Inline Prizes Formset -->
-    <h3 style="margin-top: 2.5rem;">Prizes & Awards</h3>
-    <p style="color: #718096; font-size: 0.9rem;">Add rank-ordered prizes for winners (e.g. 1st Place - ₹80,000).</p>
-    {{ prize_formset.management_form }}
-    {% if prize_formset.non_form_errors %}
-        <ul class="errorlist">{% for e in prize_formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
-    {% endif %}
+        {{ prize_formset.management_form }}
+        {% if prize_formset.non_form_errors %}
+            <ul class="errorlist">{% for e in prize_formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        {% endif %}
 
-    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
-        {% for prize_form in prize_formset %}
-            <div style="border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; background: #fffaf0;">
-                {{ prize_form.id }}
-                <div style="display: grid; grid-template-columns: 80px 2fr 2fr auto; gap: 1rem; align-items: start;">
-                    <div>
-                        <label>Rank:</label>
-                        {{ prize_form.rank }}
-                        {% if prize_form.rank.errors %}<ul class="errorlist">{% for e in prize_form.rank.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-                    </div>
-                    <div>
-                        <label>Title:</label>
-                        {{ prize_form.title }}
-                        {% if prize_form.title.errors %}<ul class="errorlist">{% for e in prize_form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-                    </div>
-                    <div>
-                        <label>Description / Value:</label>
-                        {{ prize_form.description }}
-                        {% if prize_form.description.errors %}<ul class="errorlist">{% for e in prize_form.description.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-                    </div>
-                    {% if prize_form.instance.pk %}
-                        <div style="padding-top: 1.8rem;">
-                            <label style="color: #e53e3e; font-size: 0.85rem;">
-                                {{ prize_form.DELETE }} Delete
-                            </label>
+        <div id="prizes-container" style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for prize_form in prize_formset %}
+                <div class="formset-card prize-form-item">
+                    {{ prize_form.id }}
+                    <div style="display: grid; grid-template-columns: 90px 2fr 2fr auto; gap: 1rem; align-items: start;">
+                        <div>
+                            <label class="form-label">Rank #</label>
+                            {{ prize_form.rank }}
+                            {% if prize_form.rank.errors %}<ul class="errorlist">{% for e in prize_form.rank.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
                         </div>
-                    {% endif %}
+                        <div>
+                            <label class="form-label">Prize Title</label>
+                            {{ prize_form.title }}
+                            {% if prize_form.title.errors %}<ul class="errorlist">{% for e in prize_form.title.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                        </div>
+                        <div>
+                            <label class="form-label">Value / Amount</label>
+                            {{ prize_form.description }}
+                            {% if prize_form.description.errors %}<ul class="errorlist">{% for e in prize_form.description.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                        </div>
+                        {% if prize_form.instance.pk %}
+                            <div style="padding-top: 1.75rem;">
+                                <label style="color: #f87171; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                                    {{ prize_form.DELETE }} Remove
+                                </label>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     </div>
 
-    <div style="margin-top: 2rem; display: flex; gap: 1rem; align-items: center;">
-        <button type="submit">{{ button_text }}</button>
-        <a href="{% if event %}{% url 'event_detail' slug=event.slug %}{% else %}{% url 'event_list' %}{% endif %}" style="color: #718096; text-decoration: none;">
+    <!-- Actions -->
+    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 2rem;">
+        <button type="submit" class="btn btn-primary" style="padding: 0.85rem 2.5rem; font-size: 1.05rem;">
+            {{ button_text }}
+        </button>
+        <a href="{% if event %}{% url 'event_detail' slug=event.slug %}{% else %}{% url 'event_list' %}{% endif %}" class="btn btn-secondary">
             Cancel
         </a>
     </div>
 </form>
+
+<script>
+// Interactive Dynamic Inline Formsets (Add Track & Add Prize without page reload)
+document.addEventListener('DOMContentLoaded', function() {
+    function setupFormsetAdd(btnId, containerId, prefix, itemClass) {
+        const btn = document.getElementById(btnId);
+        const container = document.getElementById(containerId);
+        const totalFormsInput = document.getElementById(`id_${prefix}-TOTAL_FORMS`);
+
+        if (!btn || !container || !totalFormsInput) return;
+
+        btn.addEventListener('click', function() {
+            const currentCount = parseInt(totalFormsInput.value, 10);
+            const items = container.querySelectorAll('.' + itemClass);
+            if (items.length === 0) return;
+
+            // Clone the first item as a clean template
+            const clone = items[0].cloneNode(true);
+            clone.querySelectorAll('input, textarea, select').forEach(function(input) {
+                // Update names and IDs
+                if (input.name) {
+                    input.name = input.name.replace(new RegExp(`${prefix}-\\d+-`), `${prefix}-${currentCount}-`);
+                }
+                if (input.id) {
+                    input.id = input.id.replace(new RegExp(`id_${prefix}-\\d+-`), `id_${prefix}-${currentCount}-`);
+                }
+                // Clear values
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    input.checked = false;
+                } else if (input.name && input.name.endsWith('-id')) {
+                    input.value = '';
+                } else if (input.name && input.name.endsWith('-rank')) {
+                    input.value = currentCount + 1;
+                } else {
+                    input.value = '';
+                }
+            });
+
+            // Remove any delete label from cloned new item
+            const deleteLabel = clone.querySelector('label[style*="f87171"]');
+            if (deleteLabel) deleteLabel.remove();
+
+            // Clear errors
+            clone.querySelectorAll('.errorlist').forEach(function(el) { el.remove(); });
+
+            container.appendChild(clone);
+            totalFormsInput.value = currentCount + 1;
+        });
+    }
+
+    setupFormsetAdd('add-track-btn', 'tracks-container', 'tracks', 'track-form-item');
+    setupFormsetAdd('add-prize-btn', 'prizes-container', 'prizes', 'prize-form-item');
+
+    // ⚡ Auto-Fill Sample Hackathon Helper
+    const sampleBtn = document.getElementById('fill-sample-btn');
+    if (sampleBtn) {
+        sampleBtn.addEventListener('click', function() {
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            const formatDT = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+            const start = new Date(now.getTime() + 2 * 24 * 3600 * 1000);
+            const end = new Date(now.getTime() + 5 * 24 * 3600 * 1000);
+            const regDeadline = new Date(now.getTime() + 1 * 24 * 3600 * 1000);
+            const subDeadline = new Date(now.getTime() + 4 * 24 * 3600 * 1000);
+
+            const nameInput = document.getElementById('id_name');
+            const descInput = document.getElementById('id_description');
+            const statusInput = document.getElementById('id_status');
+            const galleryInput = document.getElementById('id_gallery_enabled');
+
+            if (nameInput) nameInput.value = "Nexus Autonomous AI Hackathon " + Math.floor(100 + Math.random() * 900);
+            if (descInput) descInput.value = "Welcome to the Nexus Hackathon! Teams have 72 hours to design, deploy, and showcase autonomous AI agents that solve enterprise and open-source challenges.\n\nEvaluation Criteria:\n1. Innovation & Technical Execution (40%)\n2. Agent Autonomy & Safety (30%)\n3. UX & Demo Polish (30%)";
+            if (statusInput) statusInput.value = "open";
+            if (galleryInput) galleryInput.checked = true;
+
+            const startInput = document.getElementById('id_start_date');
+            const endInput = document.getElementById('id_end_date');
+            const regInput = document.getElementById('id_registration_deadline');
+            const subInput = document.getElementById('id_submission_deadline');
+
+            if (startInput) startInput.value = formatDT(start);
+            if (endInput) endInput.value = formatDT(end);
+            if (regInput) regInput.value = formatDT(regDeadline);
+            if (subInput) subInput.value = formatDT(subDeadline);
+
+            // Populate Track 0 & 1
+            const t0Name = document.getElementById('id_tracks-0-name');
+            const t0Desc = document.getElementById('id_tracks-0-description');
+            if (t0Name) t0Name.value = "Multi-Agent Systems";
+            if (t0Desc) t0Desc.value = "Autonomous coordination between reasoning and action agents";
+
+            const t1Name = document.getElementById('id_tracks-1-name');
+            const t1Desc = document.getElementById('id_tracks-1-description');
+            if (t1Name) t1Name.value = "Developer Productivity & Tooling";
+            if (t1Desc) t1Desc.value = "Code synthesis, autonomous testing, and self-healing systems";
+
+            // Populate Prize 0 & 1
+            const p0Rank = document.getElementById('id_prizes-0-rank');
+            const p0Title = document.getElementById('id_prizes-0-title');
+            const p0Desc = document.getElementById('id_prizes-0-description');
+            if (p0Rank) p0Rank.value = "1";
+            if (p0Title) p0Title.value = "Grand Champion";
+            if (p0Desc) p0Desc.value = "₹1,50,000 Cash + Cloud Credits";
+
+            const p1Rank = document.getElementById('id_prizes-1-rank');
+            const p1Title = document.getElementById('id_prizes-1-title');
+            const p1Desc = document.getElementById('id_prizes-1-description');
+            if (p1Rank) p1Rank.value = "2";
+            if (p1Title) p1Title.value = "1st Runner Up";
+            if (p1Desc) p1Desc.value = "₹75,000 Cash";
+
+            sampleBtn.textContent = "✓ Sample Data Loaded!";
+            sampleBtn.style.borderColor = "var(--accent-emerald)";
+            sampleBtn.style.color = "var(--accent-emerald)";
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -1,120 +1,55 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Dogfood Platform{% endblock %}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 0;
-            background-color: #f7f9fa;
-            color: #1a202c;
-        }
-        header {
-            background-color: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        header a {
-            text-decoration: none;
-            color: #2b6cb0;
-            margin-left: 1rem;
-            font-weight: 500;
-        }
-        .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-        label {
-            display: block;
-            margin-bottom: 0.35rem;
-            font-weight: 600;
-        }
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        select {
-            width: 100%;
-            padding: 0.6rem;
-            border: 1px solid #cbd5e0;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 1rem;
-        }
-        .helptext {
-            display: block;
-            font-size: 0.85rem;
-            color: #718096;
-            margin-top: 0.25rem;
-        }
-        .errorlist {
-            color: #e53e3e;
-            list-style: none;
-            padding-left: 0;
-            margin: 0.25rem 0 0 0;
-            font-size: 0.9rem;
-        }
-        button, .btn {
-            background-color: #3182ce;
-            color: white;
-            padding: 0.65rem 1.25rem;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
-        button:hover, .btn:hover {
-            background-color: #2b6cb0;
-        }
-        .nav-links {
-            margin-top: 1.5rem;
-        }
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            background-color: #edf2f7;
-            color: #4a5568;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-        }
-    </style>
+    <title>{% block title %}Dogfood Platform - Hackathon & Judging Hub{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <header>
-        <div>
-            <a href="{% url 'event_list' %}" style="text-decoration: none; color: inherit; margin-left: 0;">
-                <strong style="font-size: 1.2rem;">Dogfood Platform</strong>
+    <header class="app-header">
+        <div class="brand-wrapper">
+            <a href="{% url 'event_list' %}" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none;">
+                <div class="brand-icon">🐕</div>
+                <div>
+                    <span class="brand-title">Dogfood Platform</span>
+                </div>
             </a>
+            <span class="brand-tag">Phase 3: Events</span>
         </div>
-        <nav>
-            <a href="{% url 'event_list' %}">Events</a>
+
+        <nav class="main-nav">
+            <a href="{% url 'event_list' %}" class="nav-link">Explore Hackathons</a>
+
             {% if request.user.is_authenticated %}
                 {% if request.user.role == 'organizer' or request.user.role == 'admin' or request.user.is_superuser %}
-                    <a href="{% url 'event_create' %}">+ Create Event</a>
+                    <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">+ Create Hackathon</a>
                 {% endif %}
-                <span>Hello, <strong>{{ request.user.username }}</strong> (<span class="badge">{{ request.user.role }}</span>)</span>
-                <a href="{% url 'dashboard' %}">Dashboard</a>
-                <a href="{% url 'logout' %}">Log Out</a>
+
+                <div class="user-chip">
+                    <span style="color: var(--text-secondary); font-size: 0.85rem;">Signed in:</span>
+                    <strong style="color: #ffffff;">{{ request.user.username }}</strong>
+                    {% if request.user.role == 'organizer' %}
+                        <span class="role-badge role-organizer">🎪 Organizer</span>
+                    {% elif request.user.role == 'judge' %}
+                        <span class="role-badge role-judge">⚖️ Judge</span>
+                    {% elif request.user.role == 'admin' %}
+                        <span class="role-badge role-admin">🛡️ Admin</span>
+                    {% else %}
+                        <span class="role-badge role-participant">🧑‍💻 Participant</span>
+                    {% endif %}
+                </div>
+
+                <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
+                {% if request.user.is_staff or request.user.is_superuser %}
+                    <a href="{% url 'admin:index' %}" class="nav-link" target="_blank" style="color: #a78bfa;">Admin Panel &nearr;</a>
+                {% endif %}
+                <a href="{% url 'logout' %}" class="btn btn-secondary btn-sm">Log Out</a>
             {% else %}
-                <a href="{% url 'login' %}">Log In</a>
-                <a href="{% url 'signup' %}">Sign Up</a>
+                <a href="{% url 'login' %}" class="nav-link">Log In</a>
+                <a href="{% url 'signup' %}" class="btn btn-primary btn-sm">Get Started</a>
             {% endif %}
         </nav>
     </header>
@@ -122,5 +57,26 @@
     <main class="container">
         {% block content %}{% endblock %}
     </main>
+
+    <footer class="app-footer">
+        <div>
+            <strong>Dogfood Platform</strong> &bull; 100% Self-Hosted Hackathon & Judging Hub
+        </div>
+        <div style="display: flex; gap: 1.5rem; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 0.35rem; color: #34d399;">
+                <span class="status-dot" style="background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
+                System Operational
+            </span>
+            <a href="{% url 'event_list' %}">Events</a>
+            <a href="{% url 'dashboard' %}">Dashboard</a>
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'logout' %}">Log Out</a>
+            {% else %}
+                <a href="{% url 'login' %}">Log In</a>
+            {% endif %}
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>

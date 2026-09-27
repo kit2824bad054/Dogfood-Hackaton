@@ -3,90 +3,83 @@
 {% block title %}Sign Up - Dogfood Platform{% endblock %}
 
 {% block content %}
-<h2>Sign Up for Dogfood Platform</h2>
-<p>Create an account to participate in hackathons as a participant, judge, or organizer.</p>
+<div style="max-width: 520px; margin: 2rem auto;">
+    <div class="card" style="padding: 2.5rem 2rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div class="brand-icon" style="margin: 0 auto 1rem auto; width: 48px; height: 48px; font-size: 1.5rem;">
+                🚀
+            </div>
+            <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">Create Your Account</h2>
+            <p style="font-size: 0.95rem; margin: 0;">Register to participate in or organize frontier hackathons</p>
+        </div>
 
-<form method="post" novalidate>
-    {% csrf_token %}
+        <form method="post" novalidate>
+            {% csrf_token %}
 
-    {% if form.non_field_errors %}
-        <ul class="errorlist">
-            {% for error in form.non_field_errors %}
-                <li>{{ error }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+            {% if form.non_field_errors %}
+                <div style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                    <ul class="errorlist" style="margin: 0;">
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
 
-    <div class="form-group">
-        <label for="{{ form.username.id_for_label }}">Username:</label>
-        {{ form.username }}
-        {% if form.username.errors %}
-            <ul class="errorlist">
-                {% for error in form.username.errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+            <div class="form-group">
+                <label class="form-label" for="{{ form.username.id_for_label }}">Username *</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.email.id_for_label }}">Email Address *</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.role.id_for_label }}">Platform Role *</label>
+                {{ form.role }}
+                {% if form.role.help_text %}
+                    <span class="helptext">{{ form.role.help_text }}</span>
+                {% endif %}
+                {% if form.role.errors %}
+                    <ul class="errorlist">{% for e in form.role.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.password.id_for_label }}">Password *</label>
+                {{ form.password }}
+                {% if form.password.help_text %}
+                    <span class="helptext">{{ form.password.help_text }}</span>
+                {% endif %}
+                {% if form.password.errors %}
+                    <ul class="errorlist">{% for e in form.password.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="{{ form.password_confirm.id_for_label }}">Confirm Password *</label>
+                {{ form.password_confirm }}
+                {% if form.password_confirm.errors %}
+                    <ul class="errorlist">{% for e in form.password_confirm.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; margin-top: 0.5rem;">
+                Create Account & Join &rarr;
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.75rem; font-size: 0.95rem; color: var(--text-secondary);">
+            Already have an account? <a href="{% url 'login' %}" style="font-weight: 600;">Sign in here &rarr;</a>
+        </div>
     </div>
-
-    <div class="form-group">
-        <label for="{{ form.email.id_for_label }}">Email Address:</label>
-        {{ form.email }}
-        {% if form.email.errors %}
-            <ul class="errorlist">
-                {% for error in form.email.errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </div>
-
-    <div class="form-group">
-        <label for="{{ form.role.id_for_label }}">Select Role:</label>
-        {{ form.role }}
-        {% if form.role.help_text %}
-            <span class="helptext">{{ form.role.help_text }}</span>
-        {% endif %}
-        {% if form.role.errors %}
-            <ul class="errorlist">
-                {% for error in form.role.errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </div>
-
-    <div class="form-group">
-        <label for="{{ form.password.id_for_label }}">Password:</label>
-        {{ form.password }}
-        {% if form.password.help_text %}
-            <span class="helptext">{{ form.password.help_text }}</span>
-        {% endif %}
-        {% if form.password.errors %}
-            <ul class="errorlist">
-                {% for error in form.password.errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </div>
-
-    <div class="form-group">
-        <label for="{{ form.password_confirm.id_for_label }}">Confirm Password:</label>
-        {{ form.password_confirm }}
-        {% if form.password_confirm.errors %}
-            <ul class="errorlist">
-                {% for error in form.password_confirm.errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </div>
-
-    <button type="submit">Create Account</button>
-</form>
-
-<div class="nav-links">
-    Already have an account? <a href="{% url 'login' %}">Log in here</a>.
 </div>
 {% endblock %}
