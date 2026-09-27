@@ -1,0 +1,5 @@
+# Set default behaviour to automatically normalize line endings
+* text=auto
+
+# Keep shell scripts with LF endings in working tree and repo
+*.sh text eol=lf
