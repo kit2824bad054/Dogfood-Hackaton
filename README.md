@@ -1,22 +1,34 @@
-# Dogfood Platform - Phase 1: Foundation
+# Dogfood Platform
 
 A 100% self-hosted hackathon submission and judging platform built with Django, Django REST Framework, PostgreSQL, and Docker.
 
 ---
 
-## Architecture Overview (Phase 1)
+## Architecture & Roadmap
 
-This repository contains the Phase 1 foundation scaffold:
-- **Django 5.x** core project configuration in `config/`
-- **Django REST Framework** integration
-- **Domain App Scaffolds** in `apps/`:
-  - `accounts`: User roles and profiles (Participant, Judge, Organizer, Admin)
-  - `events`: Hackathons, timelines, rules, tracks
-  - `teams`: Team formation, membership, and invitations
-  - `submissions`: Project submissions, links, media, and metadata
-  - `gallery`: Public showcase and discovery
-- **PostgreSQL 16** containerized database with named volume persistence
-- **Docker Compose** orchestration with database health checks and automatic migrations
+- **Phase 1: Foundation** (Completed): Docker Compose, PostgreSQL 16, Django 5 skeleton, and app scaffolding.
+- **Phase 2: Authentication & RBAC** (Current): Custom User model with roles, signup, login/logout, role-based dashboards, reusable `@role_required` decorator, and Django Admin role management.
+- **Phase 3**: Events & Hackathon Lifecycles (Upcoming)
+- **Phase 4**: Teams & Membership (Upcoming)
+- **Phase 5**: Project Submissions & Media (Upcoming)
+- **Phase 6**: Public Gallery & Judging (Upcoming)
+
+---
+
+## Phase 2: Auth & Role-Based Access Control
+
+### Platform Roles
+- **Participant** (`participant`): Standard user submitting projects and joining teams (Default at signup).
+- **Judge** (`judge`): Evaluator scoring submissions.
+- **Organizer** (`organizer`): Manages hackathons, timelines, and tracks.
+- **Admin** (`admin`): Full platform administrator (promoted exclusively via Django Admin or superuser).
+
+### Access Control Utility
+Views and APIs are protected via reusable access control utilities in `apps/accounts/`:
+- **Django Views Decorator**: `@role_required('organizer', 'admin')`
+  - Unauthenticated users are redirected to login.
+  - Authenticated users with invalid roles receive **HTTP 403 Forbidden**.
+- **DRF Permission Class**: `HasRole` with `allowed_roles = [...]`.
 
 ---
 
@@ -26,66 +38,81 @@ This repository contains the Phase 1 foundation scaffold:
 .
 ├── docker-compose.yml     # Compose config for web and db services
 ├── Dockerfile             # Python 3.12-slim container definition
-├── entrypoint.sh          # Database wait loop, migration, and server boot script
+├── entrypoint.sh          # Database wait loop, migration, superuser, and server boot script
 ├── .env.example           # Template for environment variables
 ├── requirements.txt       # Core dependencies (Django, DRF, psycopg2, django-environ)
 ├── manage.py              # Django management utility
 ├── config/                # Django project settings and root routing
 ├── apps/                  # Modular application domain packages
-│   ├── accounts/
-│   ├── events/
-│   ├── teams/
-│   ├── submissions/
-│   └── gallery/
-├── templates/             # Project-level HTML templates
-├── static/                # Static asset files (CSS, JS, images)
-└── tests/                 # Foundation smoke and integration tests
+│   ├── accounts/          # Custom User model, auth views, RBAC decorators & admin
+│   ├── events/            # Events app scaffold
+│   ├── teams/             # Teams app scaffold
+│   ├── submissions/       # Submissions app scaffold
+│   └── gallery/           # Gallery app scaffold
+├── templates/             # HTML templates (base, signup, login, dashboard)
+├── static/                # Static asset files
+└── tests/                 # Integration test suites
 ```
 
 ---
 
-## Getting Started
+## Quickstart with Docker Compose
 
-### Prerequisites
-- [Docker Engine & Docker Compose](https://docs.docker.com/get-docker/)
-
-### 1. Clone the repository
-```bash
-git clone https://github.com/kit2824bad054/Dogfood-Hackaton.git
-cd Dogfood-Hackaton
-```
-
-### 2. Configure Environment (Optional for local dev)
-Defaults are pre-configured in `docker-compose.yml` and `config/settings.py` for instant local development. To customize settings:
-```bash
-cp .env.example .env
-```
-
-### 3. Start the Platform
-Run:
+### 1. Start the Platform
 ```bash
 docker compose up --build
 ```
 
-Compose will:
-1. Build the Python 3.12 `web` container.
-2. Launch PostgreSQL 16 `db` service and verify health via `pg_isready`.
-3. Wait for PostgreSQL to be healthy before starting `web`.
-4. Run Django's database migrations (`python manage.py migrate`).
-5. Launch the Django server at [http://localhost:8000](http://localhost:8000).
+Compose automatically:
+1. Builds the `web` container.
+2. Boots PostgreSQL 16 and waits for health check (`pg_isready`).
+3. Runs database migrations (`python manage.py migrate`).
+4. Serves the web application at [http://localhost:8000](http://localhost:8000).
 
 ---
 
-## Verification
+## Manual Verification Guide (Phase 2)
 
-1. **Verify Web Service**: Open [http://localhost:8000](http://localhost:8000) in your browser. You will see Django's default welcome page ("The install worked successfully!").
-2. **Verify Database Health**:
-   ```bash
-   docker compose ps
+### Step 1: Create a Superuser
+Run the standard Django createsuperuser command:
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+Follow prompts to enter username (e.g. `admin`), email, and password. Superusers automatically receive the `admin` role.
+
+### Step 2: Test User Signup & Role Dashboards
+1. Open [http://localhost:8000/signup/](http://localhost:8000/signup/).
+2. Register a new user choosing role **Participant** (e.g. `alice`).
+   - You are logged in automatically and redirected to `/dashboard/participant/`.
+3. Log out via [http://localhost:8000/logout/](http://localhost:8000/logout/).
+4. Register another user choosing role **Organizer** (e.g. `bob`).
+   - You are redirected to `/dashboard/organizer/`.
+5. Register a third user choosing role **Judge** (e.g. `carol`).
+   - You are redirected to `/dashboard/judge/`.
+
+### Step 3: Verify 403 Forbidden Access Control
+1. Log in as the participant (`alice`).
+2. Attempt to navigate directly to the Organizer dashboard:
    ```
-   Both `web` and `db` will show `Up` (with `db` showing `healthy`).
-3. **Run Smoke Tests**:
-   ```bash
-   docker compose exec web python manage.py test
+   http://localhost:8000/dashboard/organizer/
    ```
-   All tests will pass without errors.
+3. **Expected result**: HTTP 403 Forbidden (Access Denied).
+4. Attempt to navigate directly to the Judge dashboard:
+   ```
+   http://localhost:8000/dashboard/judge/
+   ```
+5. **Expected result**: HTTP 403 Forbidden (Access Denied).
+
+### Step 4: Verify Django Admin Role Management
+1. Log in as the superuser at [http://localhost:8000/admin/](http://localhost:8000/admin/).
+2. Under **Accounts > Users**, view all registered users. Notice the **Role** column in the user table.
+3. Click on user `alice`. In the **Platform Role Management** section, change her role from `Participant` to `Organizer` and click **Save**.
+4. Log out of admin, log back in as `alice`, and navigate to [http://localhost:8000/dashboard/organizer/](http://localhost:8000/dashboard/organizer/).
+5. **Expected result**: HTTP 200 OK — `alice` now has access to the organizer dashboard.
+
+### Step 5: Run Automated Tests
+Execute the full test suite:
+```bash
+docker compose exec web python manage.py test
+```
+All unit and RBAC tests will pass.

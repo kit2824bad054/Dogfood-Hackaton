@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<h2>{{ title }}</h2>
+
+<p>Welcome, <strong>{{ request.user.username }}</strong>, your role is <strong>{{ role }}</strong></p>
+
+<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;">
+
+<div style="background-color: #ebf8ff; border: 1px solid #bee3f8; padding: 1rem; border-radius: 6px; color: #2b6cb0;">
+    <strong>Role Information:</strong>
+    <p style="margin: 0.5rem 0 0 0;">
+        You are authenticated as a <code>{{ role }}</code>. Your role permissions are enforced across all views and APIs via the platform's role-based access control system.
+    </p>
+</div>
+
+<div class="nav-links" style="margin-top: 2rem;">
+    <h4>Navigation Links for Testing RBAC:</h4>
+    <ul>
+        <li><a href="{% url 'dashboard_participant' %}">Participant Dashboard (/dashboard/participant/)</a></li>
+        <li><a href="{% url 'dashboard_judge' %}">Judge Dashboard (/dashboard/judge/)</a></li>
+        <li><a href="{% url 'dashboard_organizer' %}">Organizer Dashboard (/dashboard/organizer/)</a></li>
+        <li><a href="{% url 'dashboard_admin' %}">Admin Dashboard (/dashboard/admin/)</a></li>
+        {% if request.user.is_staff or request.user.is_superuser %}
+            <li><a href="{% url 'admin:index' %}">Django Admin Panel (/admin/)</a></li>
+        {% endif %}
+    </ul>
+</div>
+{% endblock %}

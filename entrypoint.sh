@@ -26,6 +26,12 @@ echo "PostgreSQL is ready and accepting connections!"
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
+# Optionally create superuser if env vars are present
+if [ -n "$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
+    echo "Creating superuser '$DJANGO_SUPERUSER_USERNAME'..."
+    python manage.py createsuperuser --noinput || true
+fi
+
 # Start Django development server
 echo "Starting Django development server on 0.0.0.0:8000..."
 exec python manage.py runserver 0.0.0.0:8000

@@ -2,8 +2,11 @@
 URL configuration for Dogfood Platform config project.
 """
 from django.contrib import admin
-from django.urls import path
+from django.shortcuts import redirect
+from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', include('apps.accounts.urls')),
+    path('', lambda request: redirect('dashboard'), name='home'),
 ]
