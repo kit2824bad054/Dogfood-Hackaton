@@ -21,7 +21,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.events.models import Event
-from apps.judging.models import JudgeAssignment, Rubric, Score
+from apps.judging.models import EventJudge, JudgeAssignment, Rubric, Score
 from apps.judging.services import (
     assign_judges_to_event,
     get_event_rankings,
@@ -97,7 +97,26 @@ class JudgingTestCaseBase(TestCase):
             created_by=self.organizer1
         )
 
+        # EventJudge invitations (judge1 and judge2 accepted for self.event)
+        self.invitation1 = EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            user=self.judge1,
+            email=self.judge1.email,
+            status=EventJudge.Status.ACCEPTED,
+            responded_at=self.now
+        )
+        self.invitation2 = EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            user=self.judge2,
+            email=self.judge2.email,
+            status=EventJudge.Status.ACCEPTED,
+            responded_at=self.now
+        )
+
         # Rubric criteria (40% + 30% + 30% = 100%)
+
         self.criterion_arch = Rubric.objects.create(
             event=self.event,
             name="Architecture & Code",
@@ -578,3 +597,251 @@ class CSVExportAndPermissionTests(JudgingTestCaseBase):
         self.assertEqual(self.client.get(raw_url).status_code, 200)
         self.assertEqual(self.client.get(rankings_url).status_code, 200)
         self.client.logout()
+
+
+class Phase7bEventJudgeInvitationTests(JudgingTestCaseBase):
+    """
+    Test suite for Phase 7b: Event-Scoped Judge Invitations and Acceptance.
+    """
+
+    def test_organizer_can_create_invitation_for_own_event_not_for_other(self):
+        """Organizer can create invitations for their own event, but non-owners get 403."""
+        invite_url = reverse('event_judge_invitations', args=[self.event.slug])
+
+        # 1. Owner Organizer creates invitation
+        self.client.login(username='judge_org1', password='Password123!')
+        resp = self.client.post(invite_url, {'email': 'invited_judge@test.local'})
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(EventJudge.objects.filter(event=self.event, email='invited_judge@test.local').exists())
+        self.client.logout()
+
+        # 2. Non-owner Organizer gets 403 Forbidden
+        self.client.login(username='judge_org2', password='Password123!')
+        resp_forbidden = self.client.post(invite_url, {'email': 'unauthorized@test.local'})
+        self.assertEqual(resp_forbidden.status_code, 403)
+        self.assertFalse(EventJudge.objects.filter(email='unauthorized@test.local').exists())
+        self.client.logout()
+
+    def test_participant_or_organizer_cannot_accept_judge_invitation(self):
+        """Participants and organizers get 403 when attempting to access judge acceptance link."""
+        invite = EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            token='test-participant-reject-token'
+        )
+        respond_url = reverse('judge_invitation_respond', args=[invite.token])
+
+        # Participant gets 403
+        self.client.login(username='dev_part1', password='Password123!')
+        self.assertEqual(self.client.get(respond_url).status_code, 403)
+        self.assertEqual(self.client.post(respond_url, {'action': 'accept'}).status_code, 403)
+        self.client.logout()
+
+        # Organizer gets 403
+        self.client.login(username='judge_org1', password='Password123!')
+        self.assertEqual(self.client.get(respond_url).status_code, 403)
+        self.client.logout()
+
+    def test_judge_can_accept_and_decline_via_token_url(self):
+        """A judge can accept or decline via the token URL, updating status and responded_at."""
+        # 1. Accept test
+        judge3 = User.objects.create_user(
+            username='eval_judge3',
+            email='judge3@test.local',
+            password='Password123!',
+            role=User.Role.JUDGE
+        )
+        invite_accept = EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            token='token-to-accept'
+        )
+        self.client.login(username='eval_judge3', password='Password123!')
+        resp_acc = self.client.post(
+            reverse('judge_invitation_respond', args=[invite_accept.token]),
+            {'action': 'accept'}
+        )
+        self.assertEqual(resp_acc.status_code, 302)
+        invite_accept.refresh_from_db()
+        self.assertEqual(invite_accept.status, EventJudge.Status.ACCEPTED)
+        self.assertEqual(invite_accept.user, judge3)
+        self.assertIsNotNone(invite_accept.responded_at)
+        self.client.logout()
+
+        # 2. Decline test
+        judge4 = User.objects.create_user(
+            username='eval_judge4',
+            email='judge4@test.local',
+            password='Password123!',
+            role=User.Role.JUDGE
+        )
+        invite_decline = EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            token='token-to-decline'
+        )
+        self.client.login(username='eval_judge4', password='Password123!')
+        resp_dec = self.client.post(
+            reverse('judge_invitation_respond', args=[invite_decline.token]),
+            {'action': 'decline'}
+        )
+        self.assertEqual(resp_dec.status_code, 302)
+        invite_decline.refresh_from_db()
+        self.assertEqual(invite_decline.status, EventJudge.Status.DECLINED)
+        self.assertEqual(invite_decline.user, judge4)
+        self.assertIsNotNone(invite_decline.responded_at)
+        self.client.logout()
+
+    def test_revoked_or_invalid_token_is_rejected_cleanly(self):
+        """Revoked, invalid, and closed event tokens are rejected cleanly without 500 errors."""
+        self.client.login(username='eval_judge1', password='Password123!')
+
+        # 1. Invalid token -> 404
+        resp_404 = self.client.get(reverse('judge_invitation_respond', args=['completely-invalid-token']))
+        self.assertEqual(resp_404.status_code, 404)
+        self.assertContains(resp_404, "invalid", status_code=404)
+
+        # 2. Revoked token -> 400
+        revoked_invite = EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            token='revoked-test-token',
+            status=EventJudge.Status.REVOKED
+        )
+        resp_revoked = self.client.get(reverse('judge_invitation_respond', args=[revoked_invite.token]))
+        self.assertEqual(resp_revoked.status_code, 400)
+        self.assertContains(resp_revoked, "revoked", status_code=400)
+
+        # 3. Closed event -> 400
+        closed_event = Event.objects.create(
+            name="Concluded Hackathon",
+            slug="concluded-hackathon",
+            description="Concluded event.",
+            status=Event.Status.CLOSED,
+            start_date=self.now,
+            registration_deadline=self.now,
+            submission_deadline=self.now,
+            end_date=self.now,
+            created_by=self.organizer1
+        )
+        closed_invite = EventJudge.objects.create(
+            event=closed_event,
+            invited_by=self.organizer1,
+            token='closed-event-token',
+            status=EventJudge.Status.PENDING
+        )
+        resp_closed = self.client.get(reverse('judge_invitation_respond', args=[closed_invite.token]))
+        self.assertEqual(resp_closed.status_code, 400)
+        self.assertContains(resp_closed, "closed", status_code=400)
+        self.client.logout()
+
+    def test_assign_judges_only_uses_judges_with_accepted_invitations(self):
+        """A role='judge' user with no accepted invitation is never assigned."""
+        uninvited_judge = User.objects.create_user(
+            username='uninvited_judge_user',
+            email='uninvited@test.local',
+            password='Password123!',
+            role=User.Role.JUDGE
+        )
+
+        res = assign_judges_to_event(self.event, judges_per_submission=2, clear_existing=True)
+        self.assertTrue(res['success'])
+
+        assigned_judge_ids = set(
+            JudgeAssignment.objects.filter(submission__event=self.event).values_list('judge_id', flat=True)
+        )
+        self.assertIn(self.judge1.id, assigned_judge_ids)
+        self.assertIn(self.judge2.id, assigned_judge_ids)
+        self.assertNotIn(uninvited_judge.id, assigned_judge_ids)
+
+    def test_judge_with_pending_or_declined_invitation_is_never_assigned(self):
+        """Judges with pending or declined invitations are excluded from assignment."""
+        pending_judge = User.objects.create_user(
+            username='pending_judge_user',
+            email='pending_j@test.local',
+            password='Password123!',
+            role=User.Role.JUDGE
+        )
+        EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            user=pending_judge,
+            status=EventJudge.Status.PENDING
+        )
+
+        declined_judge = User.objects.create_user(
+            username='declined_judge_user',
+            email='declined_j@test.local',
+            password='Password123!',
+            role=User.Role.JUDGE
+        )
+        EventJudge.objects.create(
+            event=self.event,
+            invited_by=self.organizer1,
+            user=declined_judge,
+            status=EventJudge.Status.DECLINED
+        )
+
+        assign_judges_to_event(self.event, judges_per_submission=2, clear_existing=True)
+
+        assigned_judge_ids = set(
+            JudgeAssignment.objects.filter(submission__event=self.event).values_list('judge_id', flat=True)
+        )
+        self.assertNotIn(pending_judge.id, assigned_judge_ids)
+        self.assertNotIn(declined_judge.id, assigned_judge_ids)
+
+    def test_revoking_accepted_judge_removes_unscored_and_preserves_scored(self):
+        """Revoking an accepted invitation deletes unscored assignments but preserves completed scores flagged for review."""
+        # Clean any existing assignments
+        JudgeAssignment.objects.filter(submission__event=self.event).delete()
+
+        # Assignment 1: Completed with score
+        a1 = JudgeAssignment.objects.create(
+            submission=self.sub1,
+            judge=self.judge1,
+            status=JudgeAssignment.Status.COMPLETED
+        )
+        Score.objects.create(
+            assignment=a1,
+            rubric_criterion=self.criterion_arch,
+            raw_score=Decimal('9.00')
+        )
+
+        # Assignment 2: Not started, no scores
+        a2 = JudgeAssignment.objects.create(
+            submission=self.sub2,
+            judge=self.judge1,
+            status=JudgeAssignment.Status.NOT_STARTED
+        )
+
+        # Organizer revokes invitation
+        self.client.login(username='judge_org1', password='Password123!')
+        revoke_url = reverse('revoke_judge_invitation', args=[self.invitation1.id])
+        resp = self.client.post(revoke_url)
+        self.assertEqual(resp.status_code, 302)
+
+        self.invitation1.refresh_from_db()
+        self.assertEqual(self.invitation1.status, EventJudge.Status.REVOKED)
+
+        # Unscored assignment a2 must be deleted
+        self.assertFalse(JudgeAssignment.objects.filter(id=a2.id).exists())
+
+        # Scored assignment a1 must be kept and flagged for review
+        self.assertTrue(JudgeAssignment.objects.filter(id=a1.id).exists())
+        a1.refresh_from_db()
+        self.assertTrue(a1.is_flagged_for_review)
+        self.assertIn("preserved for audit", a1.review_notes)
+
+    def test_rerunning_seed_demo_data_does_not_duplicate_invitations(self):
+        """Running seed_demo_data multiple times is idempotent and does not create duplicate invitations."""
+        from django.core.management import call_command
+        call_command('seed_demo_data')
+        call_command('seed_demo_data')
+
+        from apps.events.models import Event
+        event1 = Event.objects.get(slug='ai-frontier-hackathon-2026')
+        judge1 = User.objects.get(username='judge1')
+
+        invites_count = EventJudge.objects.filter(event=event1, user=judge1).count()
+        self.assertEqual(invites_count, 1)
+

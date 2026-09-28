@@ -30,6 +30,9 @@
         </div>
 
         <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="{% url 'event_judge_invitations' event_slug=event.slug %}" class="btn btn-secondary btn-sm" style="border-color: #6366f1; color: #a5b4fc;">
+                ✉️ Judge Invitations
+            </a>
             <a href="{% url 'event_rubric_manage' event_slug=event.slug %}" class="btn btn-secondary btn-sm">
                 📋 Manage Rubric ({{ rubric_criteria|length }} Criteria)
             </a>

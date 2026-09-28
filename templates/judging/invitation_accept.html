@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Judge Invitation - {{ event.name|default:"Dogfood Platform" }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 2rem auto;">
+    <div class="card" style="padding: 2.5rem 2rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div class="brand-icon" style="margin: 0 auto 1rem auto; width: 56px; height: 56px; font-size: 1.75rem;">
+                ⚖️
+            </div>
+            <span class="role-badge role-judge" style="margin-bottom: 0.75rem; display: inline-block;">
+                Event Judge Invitation
+            </span>
+            <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">
+                {{ event.name|default:"Hackathon Evaluation Invitation" }}
+            </h2>
+            {% if invitation %}
+                <p style="font-size: 0.95rem; color: #94a3b8; margin: 0;">
+                    Invited by <strong>@{{ invitation.invited_by.username }}</strong> &bull; Sent {{ invitation.created_at|date:"M d, Y" }}
+                </p>
+            {% endif %}
+        </div>
+
+        {% if error %}
+            <div style="background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.35); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 2rem;">
+                <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                    <span style="font-size: 1.25rem;">⚠️</span>
+                    <div>
+                        <h4 style="margin: 0 0 0.35rem 0; color: #fb7185;">Invitation Cannot Be Accepted</h4>
+                        <p style="margin: 0; font-size: 0.95rem; color: #fecdd3;">{{ error }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{% url 'judge_dashboard' %}" class="btn btn-secondary">
+                    &larr; Back to Judge Dashboard
+                </a>
+            </div>
+        {% else %}
+            <!-- Event Overview Details -->
+            <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 2rem;">
+                <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Event Details
+                </h4>
+                <p style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.25rem; color: #cbd5e1;">
+                    {{ event.description|linebreaksbr }}
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem; font-size: 0.85rem;">
+                    <div>
+                        <span style="color: #94a3b8; display: block;">Submission Deadline:</span>
+                        <strong style="color: #ffffff;">{{ event.submission_deadline|date:"M d, Y H:i T" }}</strong>
+                    </div>
+                    <div>
+                        <span style="color: #94a3b8; display: block;">Event Concludes:</span>
+                        <strong style="color: #ffffff;">{{ event.end_date|date:"M d, Y H:i T" }}</strong>
+                    </div>
+                    <div>
+                        <span style="color: #94a3b8; display: block;">Status:</span>
+                        <span class="role-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.75rem;">
+                            {{ event.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acceptance Confirmation Form -->
+            <form method="post" style="display: flex; flex-direction: column; gap: 1rem;">
+                {% csrf_token %}
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button type="submit" name="action" value="accept" class="btn btn-primary" style="padding: 0.85rem 2rem; font-size: 1rem;">
+                        ✓ Accept Invitation
+                    </button>
+                    <button type="submit" name="action" value="decline" class="btn btn-secondary" style="padding: 0.85rem 1.75rem; font-size: 1rem;">
+                        ✕ Decline
+                    </button>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

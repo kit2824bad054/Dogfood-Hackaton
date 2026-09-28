@@ -54,8 +54,42 @@
     </div>
 {% endif %}
 
+{% if pending_invitations %}
+<div class="card" style="border: 1px solid #f59e0b; background: rgba(245, 158, 11, 0.08); margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3 style="margin: 0; color: #fbbf24; display: flex; align-items: center; gap: 0.5rem;">
+            <span>📬</span> Event Invitations Pending Response ({{ pending_invitations.count }})
+        </h3>
+        <span style="font-size: 0.85rem; color: #cbd5e1;">You must accept an invitation before you can be assigned submissions for an event.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for invite in pending_invitations %}
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.6); padding: 1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h4 style="margin: 0 0 0.25rem 0; font-size: 1.05rem;">
+                        <a href="{% url 'event_detail' invite.event.slug %}" style="color: #60a5fa; text-decoration: none;">
+                            {{ invite.event.name }}
+                        </a>
+                    </h4>
+                    <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">
+                        Invited by <strong>@{{ invite.invited_by.username }}</strong> &bull; Received {{ invite.created_at|timesince }} ago
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{% url 'judge_invitation_respond' invite.token %}" class="btn btn-primary btn-sm">
+                        Review & Respond &rarr;
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- Assigned Submissions Table / Cards -->
 {% if assignments %}
+
     <div style="display: flex; flex-direction: column; gap: 1.25rem;">
         {% for item in assignments %}
             <div class="card interactive-card" style="padding: 1.75rem; margin-bottom: 0;" id="assignment-card-{{ item.id }}">

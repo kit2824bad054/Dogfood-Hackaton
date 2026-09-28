@@ -8,6 +8,7 @@ Phase 7:
 - Judging progress metrics for organizer oversight
 """
 
+import logging
 import math
 from decimal import Decimal
 from django.contrib.auth import get_user_model
@@ -19,8 +20,9 @@ from django.utils import timezone
 from apps.events.models import Event
 from apps.submissions.models import Submission
 from apps.teams.models import TeamMembership
-from .models import JudgeAssignment, Rubric, Score
+from .models import EventJudge, JudgeAssignment, Rubric, Score
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -36,6 +38,8 @@ def assign_judges_to_event(event, judges_per_submission=3, clear_existing=False)
     - Gracefully handles fewer judges than requested without crashing.
     - Idempotent: Re-running does not duplicate existing assignments.
     - If clear_existing=True, clears current assignments and re-assigns cleanly.
+    - Only judges who have accepted an event-scoped invitation (EventJudge status='accepted')
+      are included in the assignment pool.
     """
     # 1. Validate that the event has a valid rubric
     Rubric.validate_event_rubric(event)
@@ -61,20 +65,35 @@ def assign_judges_to_event(event, judges_per_submission=3, clear_existing=False)
     if clear_existing:
         JudgeAssignment.objects.filter(submission__event=event).delete()
 
-    # 4. Get all eligible judges (users with role='judge')
-    judges = list(User.objects.filter(role=User.Role.JUDGE).order_by('id'))
+    # 4. Get all eligible judges (draw pool ONLY from users with an accepted EventJudge invitation)
+    accepted_judge_ids = EventJudge.objects.filter(
+        event=event,
+        status=EventJudge.Status.ACCEPTED,
+        user__isnull=False
+    ).values_list('user_id', flat=True)
+
+    judges = list(User.objects.filter(id__in=accepted_judge_ids).order_by('id'))
     if not judges:
-        # Also fall back to admin if no judges exist
-        judges = list(User.objects.filter(role=User.Role.ADMIN).order_by('id'))
-        if not judges:
-            raise ValidationError("No users with the 'judge' role found on the platform.")
-        warnings.append("No users with 'judge' role found; platform administrators were used as fallback.")
+        logger.warning(
+            f"No judges with accepted invitations found for event '{event.name}'. No assignments made."
+        )
+        warnings.append("No judges with accepted invitations found for this event.")
+        return {
+            'success': True,
+            'assigned_count': 0,
+            'new_assigned_count': 0,
+            'total_assigned_count': JudgeAssignment.objects.filter(submission__event=event).count(),
+            'submissions_count': len(submissions),
+            'judges_count': 0,
+            'warnings': warnings,
+        }
 
     if len(judges) < judges_per_submission:
         warnings.append(
             f"Requested {judges_per_submission} judges per project, but only {len(judges)} "
             f"eligible judges are registered. Projects will receive at most {len(judges)} judges."
         )
+
 
     # 5. Track existing workloads per judge for this event
     judge_workload = {

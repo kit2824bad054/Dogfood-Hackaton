@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Judge Invitations - {{ event.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span class="role-badge role-organizer" style="font-size: 0.85rem;">🎪 Organizer Console</span>
+                <span class="role-badge" style="background: rgba(99, 102, 241, 0.2); color: #a5b4fc; font-size: 0.85rem;">
+                    Phase 7b Judge Invitations
+                </span>
+            </div>
+            <h1 style="margin-bottom: 0.5rem;">Judge Invitations: {{ event.name }}</h1>
+            <p style="margin: 0; font-size: 1rem; color: #cbd5e1;">
+                Invite judges specifically for this event. Only judges who accept their invitation will be included
+                in automated submission assignments.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="{% url 'event_judging_progress' event.slug %}" class="btn btn-secondary btn-sm">
+                &larr; Judging Progress
+            </a>
+            <a href="{% url 'event_detail' event.slug %}" class="btn btn-secondary btn-sm">
+                Event Details
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+    <div style="margin-bottom: 1.5rem;">
+        {% for message in messages %}
+            <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 0.75rem; border-left: 4px solid {% if message.tags == 'success' %}#10b981{% elif message.tags == 'warning' %}#f59e0b{% elif message.tags == 'error' %}#f43f5e{% else %}#6366f1{% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Create New Invitation Card -->
+<div class="card" style="margin-bottom: 2rem; border: 1px solid var(--border-accent);">
+    <h3 style="margin-bottom: 1rem; font-size: 1.2rem;">✉️ Invite a Judge</h3>
+    <form method="post" style="display: flex; flex-direction: column; gap: 1.25rem;">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+            <!-- Option 1: Select Registered Judge -->
+            <div style="background: rgba(15, 23, 42, 0.5); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                <label class="form-label" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                    1. Select an Existing Registered Judge
+                </label>
+                <select name="user_id" class="form-control" style="width: 100%; padding: 0.65rem; background: #0f172a; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: #ffffff;">
+                    <option value="">-- Choose a registered judge --</option>
+                    {% for judge in available_judges %}
+                        <option value="{{ judge.id }}">
+                            @{{ judge.username }} ({{ judge.email|default:"No email" }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <span class="helptext" style="display: block; margin-top: 0.5rem; font-size: 0.8rem; color: #94a3b8;">
+                    Links invitation directly to this judge's dashboard.
+                </span>
+            </div>
+
+            <!-- Option 2: Generate Shareable Link -->
+            <div style="background: rgba(15, 23, 42, 0.5); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                <label class="form-label" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                    2. Or Generate a Shareable Link (Optional Email)
+                </label>
+                <input type="email" name="email" class="form-control" placeholder="judge@example.com (optional)" style="width: 100%; padding: 0.65rem; background: #0f172a; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: #ffffff;">
+                <span class="helptext" style="display: block; margin-top: 0.5rem; font-size: 0.8rem; color: #94a3b8;">
+                    Generates a unique token link you can copy and send directly to the judge.
+                </span>
+            </div>
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary">
+                + Create & Issue Invitation
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Existing Invitations Table -->
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="margin: 0; font-size: 1.25rem;">
+            Event Judge Invitations ({{ invitations.count }})
+        </h3>
+    </div>
+
+    {% if invitations %}
+        <div style="overflow-x: auto;">
+            <table class="table" style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-subtle); color: #94a3b8; font-size: 0.85rem; text-transform: uppercase;">
+                        <th style="padding: 0.75rem;">Invitee</th>
+                        <th style="padding: 0.75rem;">Status</th>
+                        <th style="padding: 0.75rem;">Invitation Link</th>
+                        <th style="padding: 0.75rem;">Created</th>
+                        <th style="padding: 0.75rem;">Responded</th>
+                        <th style="padding: 0.75rem; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in invitations %}
+                        <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.9rem;">
+                            <td style="padding: 0.85rem 0.75rem;">
+                                {% if inv.user %}
+                                    <strong style="color: #ffffff;">@{{ inv.user.username }}</strong>
+                                    {% if inv.user.email %}
+                                        <div style="font-size: 0.8rem; color: #94a3b8;">{{ inv.user.email }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span style="color: #cbd5e1;">{{ inv.email|default:"Shareable Link" }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.85rem 0.75rem;">
+                                {% if inv.status == 'accepted' %}
+                                    <span class="role-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.8rem;">
+                                        ✓ Accepted
+                                    </span>
+                                {% elif inv.status == 'pending' %}
+                                    <span class="role-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.8rem;">
+                                        ⏳ Pending
+                                    </span>
+                                {% elif inv.status == 'declined' %}
+                                    <span class="role-badge" style="background: rgba(148, 163, 184, 0.2); color: #cbd5e1; font-size: 0.8rem;">
+                                        ✕ Declined
+                                    </span>
+                                {% elif inv.status == 'revoked' %}
+                                    <span class="role-badge" style="background: rgba(244, 63, 94, 0.2); color: #fb7185; font-size: 0.8rem;">
+                                        🚫 Revoked
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.85rem 0.75rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <code style="font-size: 0.8rem; color: #a5b4fc; background: rgba(0,0,0,0.3); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                                        /judging/invite/{{ inv.token }}/
+                                    </code>
+                                    <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="navigator.clipboard.writeText(window.location.origin + '{% url 'judge_invitation_respond' inv.token %}'); this.innerText='Copied!'; setTimeout(() => this.innerText='Copy', 1500);">
+                                        Copy
+                                    </button>
+                                </div>
+                            </td>
+                            <td style="padding: 0.85rem 0.75rem; color: #94a3b8; font-size: 0.85rem;">
+                                {{ inv.created_at|date:"M d, H:i" }}
+                            </td>
+                            <td style="padding: 0.85rem 0.75rem; color: #94a3b8; font-size: 0.85rem;">
+                                {{ inv.responded_at|date:"M d, H:i"|default:"—" }}
+                            </td>
+                            <td style="padding: 0.85rem 0.75rem; text-align: right;">
+                                {% if inv.status != 'revoked' %}
+                                    <form method="post" action="{% url 'revoke_judge_invitation' inv.id %}" style="display: inline;" onsubmit="return confirm('Revoking this invitation will remove this judge from unscored assignments for this event. Continue?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-secondary btn-sm" style="color: #fb7185; border-color: rgba(244, 63, 94, 0.4);">
+                                            Revoke
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span style="color: #64748b; font-size: 0.8rem;">Revoked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 3rem 1rem; color: #94a3b8;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">⚖️</div>
+            <h4 style="margin-bottom: 0.5rem; color: #ffffff;">No Judge Invitations Yet</h4>
+            <p style="margin: 0; font-size: 0.95rem;">
+                Invite judges using the form above to build the judge pool for this event.
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

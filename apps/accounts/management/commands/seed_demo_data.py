@@ -498,11 +498,60 @@ class Command(BaseCommand):
         )
 
         # ---------------------------------------------------------------------
-        # 6. Assign Judges to Events
+        # 6. Seed Event Judge Invitations (Phase 7b) & Assign Judges
         # ---------------------------------------------------------------------
-        self.stdout.write("6. Assigning Judges to Submitted Projects...")
+        self.stdout.write("6. Seeding Event Judge Invitations & Assigning Judges...")
+        from apps.judging.models import EventJudge
+
+        # 6a. Accepted invitations for judge1 and judge2 on Event 1 (Open event)
+        for judge in judge_users:
+            ej, _ = EventJudge.objects.get_or_create(
+                event=event1,
+                user=judge,
+                defaults={
+                    'invited_by': organizer_users[0],
+                    'email': judge.email,
+                    'status': EventJudge.Status.ACCEPTED,
+                    'responded_at': now - timedelta(days=5),
+                }
+            )
+            ej.status = EventJudge.Status.ACCEPTED
+            ej.responded_at = now - timedelta(days=5)
+            ej.save()
+
+        # 6b. Accepted invitations for judge1 and judge2 on Event 2 (Closed event)
+        for judge in judge_users:
+            ej, _ = EventJudge.objects.get_or_create(
+                event=event2,
+                user=judge,
+                defaults={
+                    'invited_by': organizer_users[1],
+                    'email': judge.email,
+                    'status': EventJudge.Status.ACCEPTED,
+                    'responded_at': now - timedelta(days=25),
+                }
+            )
+            ej.status = EventJudge.Status.ACCEPTED
+            ej.responded_at = now - timedelta(days=25)
+            ej.save()
+
+        # 6c. One extra pending invitation on event1 so accept flow can be demoed
+        demo_pending_invite, _ = EventJudge.objects.get_or_create(
+            token='demo-pending-judge-invite',
+            defaults={
+                'event': event1,
+                'invited_by': organizer_users[0],
+                'email': 'guest_judge@dogfood.local',
+                'status': EventJudge.Status.PENDING,
+            }
+        )
+        demo_pending_invite.status = EventJudge.Status.PENDING
+        demo_pending_invite.save()
+
+        # 6d. Run Judge Assignment
         assign_judges_to_event(event1, judges_per_submission=2)
         assign_judges_to_event(event2, judges_per_submission=2)
+
 
         # ---------------------------------------------------------------------
         # 7. Output Summary Report to stdout

@@ -5,6 +5,7 @@ Phase 7: Tier 2 (T2) Rubrics with percentage weights, JudgeAssignment with confl
 protection, and Score with raw & normalized score tracking.
 """
 
+import secrets
 from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -13,6 +14,7 @@ from django.db.models import Sum
 
 from apps.events.models import Event
 from apps.submissions.models import Submission
+
 
 
 class Rubric(models.Model):
@@ -140,6 +142,15 @@ class JudgeAssignment(models.Model):
     )
     assigned_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    is_flagged_for_review = models.BooleanField(
+        default=False,
+        help_text="Flagged for organizer review (e.g. if judge was revoked after scoring)."
+    )
+    review_notes = models.TextField(
+        blank=True,
+        help_text="Organizer notes explaining flag reason."
+    )
+
 
     class Meta:
         ordering = ['submission__event', 'submission', 'judge']
@@ -256,3 +267,91 @@ class Score(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+def generate_judge_invite_token():
+    return secrets.token_urlsafe(24)
+
+
+class EventJudge(models.Model):
+    """
+    Event-scoped judge invitation and acceptance record.
+    Controls eligibility for being assigned submissions in an event.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        ACCEPTED = 'accepted', 'Accepted'
+        DECLINED = 'declined', 'Declined'
+        REVOKED = 'revoked', 'Revoked'
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='judge_invitations',
+        help_text="The hackathon event this invitation is for."
+    )
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='sent_judge_invitations',
+        help_text="Organizer or admin who created the invitation."
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='judge_invitations',
+        help_text="The judge user invited or who accepted this invitation."
+    )
+    email = models.EmailField(
+        blank=True,
+        help_text="Optional target email address if the invitee does not have an account yet."
+    )
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        default=generate_judge_invite_token,
+        db_index=True,
+        help_text="Cryptographically secure unique token for shareable invitation link."
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        help_text="Status of the invitation: pending, accepted, declined, revoked."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'user'],
+                condition=models.Q(user__isnull=False),
+                name='unique_event_judge_user'
+            )
+        ]
+
+    def __str__(self):
+        target = self.user.username if self.user else (self.email or f"Token:{self.token[:8]}")
+        return f"Invite for {target} to {self.event.name} [{self.get_status_display()}]"
+
+    @property
+    def is_pending(self):
+        return self.status == self.Status.PENDING
+
+    @property
+    def is_accepted(self):
+        return self.status == self.Status.ACCEPTED
+
+    @property
+    def is_declined(self):
+        return self.status == self.Status.DECLINED
+
+    @property
+    def is_revoked(self):
+        return self.status == self.Status.REVOKED
+

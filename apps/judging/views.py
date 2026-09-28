@@ -13,8 +13,10 @@ Phase 7:
 import csv
 from decimal import Decimal
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -22,7 +24,7 @@ from django.utils import timezone
 from apps.accounts.decorators import role_required
 from apps.events.models import Event
 from apps.submissions.models import Submission
-from .models import JudgeAssignment, Rubric, Score
+from .models import EventJudge, JudgeAssignment, Rubric, Score
 from .services import (
     assign_judges_to_event,
     get_event_judging_progress,
@@ -30,22 +32,48 @@ from .services import (
     normalize_event_scores,
 )
 
+User = get_user_model()
+
 
 # =============================================================================
-# 1. JUDGE VIEWS (Strict Role Isolation)
+# 1. JUDGE VIEWS (Strict Role Isolation & Event Invitations)
 # =============================================================================
 
 @role_required('judge', 'admin')
 def judge_dashboard_view(request):
     """
-    Judge dashboard listing all submissions assigned to the logged-in judge.
-
-    Strict Isolation:
-    - Queries ONLY JudgeAssignment records where judge = request.user.
-    - Cannot see unassigned projects or other judges' evaluations.
+    Judge dashboard listing:
+    1. Pending event invitations for the logged-in judge.
+    2. Submissions assigned to the judge, scoped strictly to events where the
+       judge holds an accepted invitation (or all events for platform admins).
     """
+    # 1. Pending invitations for this judge
+    pending_invitations = (
+        EventJudge.objects.filter(
+            status=EventJudge.Status.PENDING
+        ).filter(
+            Q(user=request.user) | (Q(user__isnull=True) & Q(email__iexact=request.user.email) & ~Q(email=''))
+        )
+        .select_related('event', 'invited_by')
+        .order_by('-created_at')
+    )
+
+    # 2. Events where this judge has an accepted invitation (admins can see all)
+    is_admin = getattr(request.user, 'role', None) == 'admin' or request.user.is_superuser
+    if is_admin:
+        accepted_event_ids = Event.objects.values_list('id', flat=True)
+    else:
+        accepted_event_ids = EventJudge.objects.filter(
+            user=request.user,
+            status=EventJudge.Status.ACCEPTED
+        ).values_list('event_id', flat=True)
+
+    # 3. Only list assignments from accepted events
     assignments = (
-        JudgeAssignment.objects.filter(judge=request.user)
+        JudgeAssignment.objects.filter(
+            judge=request.user,
+            submission__event_id__in=accepted_event_ids
+        )
         .select_related('submission__event', 'submission__team', 'submission__track')
         .order_by('-assigned_at')
     )
@@ -57,12 +85,14 @@ def judge_dashboard_view(request):
 
     context = {
         'assignments': assignments,
+        'pending_invitations': pending_invitations,
         'total_count': total_count,
         'completed_count': completed_count,
         'in_progress_count': in_progress_count,
         'not_started_count': not_started_count,
     }
     return render(request, 'judging/judge_dashboard.html', context)
+
 
 
 @login_required
@@ -471,3 +501,206 @@ def event_rubric_manage_view(request, event_slug):
         'is_valid_rubric': total_weight == Decimal('100.00'),
     }
     return render(request, 'judging/rubric_manage.html', context)
+
+
+# =============================================================================
+# 4. PHASE 7b: EVENT-SCOPED JUDGE INVITATIONS & ACCEPTANCE
+# =============================================================================
+
+@role_required('organizer', 'admin')
+def event_judge_invitations_view(request, event_slug):
+    """
+    Organizer console for managing judge invitations for an event.
+    Lists existing invitations and allows inviting existing judges or generating shareable links.
+    """
+    event = get_object_or_404(Event, slug=event_slug)
+    _check_organizer_permission(request, event)
+
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id', '').strip()
+        email = request.POST.get('email', '').strip()
+
+        if user_id:
+            judge_user = get_object_or_404(User, id=user_id, role=User.Role.JUDGE)
+            existing = EventJudge.objects.filter(event=event, user=judge_user).first()
+            if existing:
+                if existing.is_revoked:
+                    existing.status = EventJudge.Status.PENDING
+                    existing.responded_at = None
+                    existing.save()
+                    messages.success(request, f"Re-issued invitation for judge @{judge_user.username}.")
+                else:
+                    messages.warning(request, f"Judge @{judge_user.username} already has an invitation ({existing.get_status_display()}).")
+            else:
+                EventJudge.objects.create(
+                    event=event,
+                    invited_by=request.user,
+                    user=judge_user,
+                    email=judge_user.email or email,
+                    status=EventJudge.Status.PENDING
+                )
+                messages.success(request, f"Invitation created for judge @{judge_user.username}.")
+        else:
+            # Shareable token invitation with optional email
+            EventJudge.objects.create(
+                event=event,
+                invited_by=request.user,
+                email=email,
+                status=EventJudge.Status.PENDING
+            )
+            messages.success(request, "Shareable invitation link generated successfully.")
+
+        return redirect('event_judge_invitations', event_slug=event.slug)
+
+    invitations = event.judge_invitations.select_related('user', 'invited_by').order_by('-created_at')
+
+    # Available judges for dropdown (excluding judges who already have pending or accepted invitations)
+    assigned_judge_ids = event.judge_invitations.filter(
+        user__isnull=False
+    ).exclude(status=EventJudge.Status.REVOKED).values_list('user_id', flat=True)
+    available_judges = User.objects.filter(role=User.Role.JUDGE).exclude(id__in=assigned_judge_ids).order_by('username')
+
+    context = {
+        'event': event,
+        'invitations': invitations,
+        'available_judges': available_judges,
+    }
+    return render(request, 'judging/invitations_manage.html', context)
+
+
+@role_required('organizer', 'admin')
+def revoke_judge_invitation_view(request, invitation_id):
+    """
+    Revoke a judge invitation.
+    If the invitation was accepted, deletes unscored assignments and leaves completed
+    scores intact and flagged for organizer review.
+    """
+    invitation = get_object_or_404(
+        EventJudge.objects.select_related('event', 'user'),
+        id=invitation_id
+    )
+    _check_organizer_permission(request, invitation.event)
+
+    if request.method == 'POST' or request.GET.get('confirm') == '1':
+        event = invitation.event
+        judge_user = invitation.user
+
+        deleted_unscored = 0
+        preserved_scored = 0
+
+        if judge_user:
+            assignments = JudgeAssignment.objects.filter(
+                judge=judge_user,
+                submission__event=event
+            )
+            for assignment in assignments:
+                has_completed_scores = (
+                    assignment.status == JudgeAssignment.Status.COMPLETED or
+                    assignment.scores.filter(raw_score__isnull=False).exists()
+                )
+                if has_completed_scores:
+                    assignment.is_flagged_for_review = True
+                    assignment.review_notes = (
+                        f"Judge invitation was revoked by {request.user.username} on "
+                        f"{timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}. Completed scores preserved for audit."
+                    )
+                    assignment.save()
+                    preserved_scored += 1
+                else:
+                    assignment.delete()
+                    deleted_unscored += 1
+
+        invitation.status = EventJudge.Status.REVOKED
+        invitation.responded_at = timezone.now()
+        invitation.save()
+
+        msg = f"Invitation for {invitation.user.username if invitation.user else (invitation.email or 'link')} has been revoked."
+        if deleted_unscored > 0 or preserved_scored > 0:
+            msg += f" ({deleted_unscored} unscored assignments deleted; {preserved_scored} completed evaluations preserved for review)."
+        messages.success(request, msg)
+
+        return redirect('event_judge_invitations', event_slug=event.slug)
+
+    return redirect('event_judge_invitations', event_slug=invitation.event.slug)
+
+
+@login_required
+def judge_invitation_respond_view(request, token):
+    """
+    Accept or decline an event judge invitation via secure token link.
+    Requires role='judge'. A participant or organizer gets HTTP 403.
+    """
+    if getattr(request.user, 'role', None) != 'judge':
+        raise PermissionDenied("Only users with the 'judge' role can accept judge invitations.")
+
+    invitation = EventJudge.objects.select_related('event', 'invited_by', 'user').filter(token=token).first()
+    if not invitation:
+        return render(request, 'judging/invitation_accept.html', {
+            'error': "This invitation link is invalid or does not exist."
+        }, status=404)
+
+    event = invitation.event
+
+    # Token rejection validation
+    if invitation.is_revoked:
+        return render(request, 'judging/invitation_accept.html', {
+            'invitation': invitation,
+            'event': event,
+            'error': "This invitation has been revoked by the event organizer."
+        }, status=400)
+
+    if invitation.user is not None and invitation.user != request.user:
+        return render(request, 'judging/invitation_accept.html', {
+            'invitation': invitation,
+            'event': event,
+            'error': f"This invitation was designated for a different user (@{invitation.user.username})."
+        }, status=403)
+
+    if event.status == Event.Status.CLOSED:
+        return render(request, 'judging/invitation_accept.html', {
+            'invitation': invitation,
+            'event': event,
+            'error': f"The event '{event.name}' is closed. Judge invitations can no longer be accepted."
+        }, status=400)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'accept':
+            if event.status == Event.Status.CLOSED:
+                return render(request, 'judging/invitation_accept.html', {
+                    'invitation': invitation,
+                    'event': event,
+                    'error': f"The event '{event.name}' is closed. Judge invitations can no longer be accepted."
+                }, status=400)
+
+            # Check if user already holds an accepted invitation for this event
+            existing_accepted = EventJudge.objects.filter(
+                event=event,
+                user=request.user,
+                status=EventJudge.Status.ACCEPTED
+            ).exclude(pk=invitation.pk).first()
+
+            if existing_accepted:
+                messages.info(request, f"You have already accepted an invitation for '{event.name}'.")
+                return redirect('judge_dashboard')
+
+            invitation.status = EventJudge.Status.ACCEPTED
+            invitation.user = request.user
+            invitation.responded_at = timezone.now()
+            invitation.save()
+            messages.success(request, f"You have accepted the invitation to judge '{event.name}'! You are now eligible to evaluate submissions.")
+            return redirect('judge_dashboard')
+
+        elif action == 'decline':
+            invitation.status = EventJudge.Status.DECLINED
+            invitation.user = request.user
+            invitation.responded_at = timezone.now()
+            invitation.save()
+            messages.info(request, f"You declined the invitation to judge '{event.name}'.")
+            return redirect('judge_dashboard')
+
+    return render(request, 'judging/invitation_accept.html', {
+        'invitation': invitation,
+        'event': event,
+    })
+
