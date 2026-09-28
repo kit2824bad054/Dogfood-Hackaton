@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'apps.submissions',
     'apps.gallery',
     'apps.judging',
+    'apps.community',
 ]
 
 MIDDLEWARE = [
@@ -158,4 +159,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+}
+
+# Cache framework configuration (used for sliding-window anti-abuse rate limiting)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'dogfood-rate-limit-cache',
+    }
 }

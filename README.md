@@ -1,8 +1,8 @@
-# Dogfood Platform (T1 Platform & T2 Judging Hub)
+# Dogfood Platform (T1 Platform, T2 Judging & T3 Community Hub)
 
-A 100% self-hosted hackathon operations, project showcase, and peer-judging platform built with Django 5, Django REST Framework, PostgreSQL 16, and Docker. Designed for managing complete end-to-end hackathons—from organizer event creation and multi-track definition to participant team formation with cryptographically secure invite codes, collaborative project drafting with server-side deadline enforcement, a public submission gallery, and an isolated judging system with statistical score normalization and organizer oversight.
+A 100% self-hosted hackathon operations, project showcase, peer-judging, and community voting platform built with Django 5, Django REST Framework, PostgreSQL 16, and Docker. Designed for managing complete end-to-end hackathons—from organizer event creation and multi-track definition to participant team formation with cryptographically secure invite codes, collaborative project drafting with server-side deadline enforcement, a public submission gallery, isolated rubric judging with cross-judge normalization, and community voting with anti-abuse rate limits and privacy controls.
 
-> **T1 & T2 Judging Completed**: Foundation, RBAC, Event Lifecycles, Team Formation, Submissions with Deadline Enforcement, Public Project Gallery, Automated Demo Seeding, and **Phase 7 (T2 Judging)**: Rubric models, Conflict-free Judge Assignment, Strict Role Isolation, Cross-Judge Score Normalization, Organizer Progress Dashboards, and CSV exports.
+> **T1, T2 & T3 Completed**: Foundation, RBAC, Event Lifecycles, Team Formation, Submissions with Deadline Enforcement, Public Project Gallery, Automated Demo Seeding, **T2 Judging** (Rubrics, Role Isolation, Normalization, CSV Exports), and **Phase 8 (T3 Community & Anti-Abuse)**: 1-5 Star Peer Voting, Feedback Comments, Organizer Moderation, Duplicate Comment Detection, Sliding-Window Rate Limiting, Audit Trails, and Results Privacy Controls.
 
 ---
 
@@ -73,7 +73,7 @@ Visit **[http://localhost:8000/gallery/](http://localhost:8000/gallery/)** as an
 - **Shareable URLs**: Filters are reflected in GET query parameters (`?q=...&event=...&track=...`), enabling bookmarkable and shareable filtered views.
 
 ### 3. Run Automated Tests
-Execute the complete test suite (67 automated tests covering all 7 phases, judging isolation, normalization, and end-to-end integration):
+Execute the complete test suite (78 automated tests covering all 8 phases, community voting, anti-abuse safeguards, judging isolation, normalization, and end-to-end integration):
 ```bash
 # Inside Docker container
 docker compose exec web python manage.py test
@@ -150,6 +150,34 @@ python manage.py test
   - Export raw scores CSV (`/judging/events/<slug>/export/raw/`).
   - Export final normalized rankings CSV (`/judging/events/<slug>/export/rankings/`).
 
+### Phase 8: Community (T3) — Peer Voting, Comments, Anti-Abuse & Privacy Controls
+- **Vote Model** (`apps/community/models.py`):
+  - 1-5 star peer rating per participant per submission.
+  - Re-voting updates the existing row instead of creating duplicates (`Vote.objects.update_or_create`).
+- **Comment Model**:
+  - Participant feedback discussions per submission.
+  - Organizer soft-hiding (`is_hidden=True`) for moderation without database destruction.
+  - Duplicate detection flags (`is_flagged_duplicate=True`) marking near-identical comments within 15 minutes.
+- **Voting Configuration & Lifecycles**:
+  - `voting_enabled`, `voting_opens_at`, `voting_closes_at`, and `results_visible_during_voting` fields on `Event`.
+  - Server-side `is_voting_open` property evaluating active window and draft exclusions.
+- **Strict Anti-Collusion & Anti-Sybil Safeguards**:
+  - Participant-only voting: voters must be registered participants in the event (`EventRegistration` or `TeamMembership`).
+  - Self-team voting prohibition: team members are rejected with HTTP 403 when attempting to vote on their own submission.
+  - Voting outside the window is rejected with HTTP 403.
+- **Results Privacy During Voting**:
+  - If `results_visible_during_voting=False`, aggregate scores, averages, and vote counts are hidden from participants and anonymous users while voting is open.
+  - Results automatically unlock for public viewing once the voting window closes.
+  - Organizers and admins maintain full oversight access at all times.
+- **Anti-Bias Randomized Submission Order**:
+  - When voting is active for an event, gallery displays submissions in randomized order (`order_by('?')`) to eliminate positional selection bias.
+- **Sliding-Window Rate Limiting**:
+  - In-memory cache tracking action timestamps per user.
+  - Rejects bursts exceeding 20 votes or 10 comments in 60 seconds with HTTP 429.
+- **Tamper-Evident Audit Trail**:
+  - `AuditLog` records every vote cast, vote change, comment posted, comment hidden/restored, and rate-limit trigger.
+  - Organizer audit browser at `/community/events/<slug>/audit-logs/` with filtering by action type, username, and project.
+
 ---
 
 ## 📁 Repository Structure
@@ -169,14 +197,16 @@ python manage.py test
 │   ├── teams/             # Teams, memberships, invite codes, and roster views
 │   ├── submissions/       # Submissions, drafts, deadline enforcement, organizer console
 │   ├── gallery/           # Public gallery, detail showcase, search and filtering
-│   └── judging/           # Rubrics, judge assignments, isolated scoring, normalization, CSV
+│   ├── judging/           # Rubrics, judge assignments, isolated scoring, normalization, CSV
+│   └── community/         # Peer voting, comments, rate limiting, moderation, and audit logs
 ├── templates/             # HTML templates styled with custom dark-tech theme
 │   ├── accounts/          # Login, signup, role dashboards
 │   ├── events/            # Event list, detail, create, edit
 │   ├── teams/             # Team detail, create, join
 │   ├── submissions/       # Submission forms, status overview, organizer console
 │   ├── gallery/           # Public gallery list and detail views
-│   └── judging/           # Judge dashboard, scoring form, readonly view, organizer progress
+│   ├── judging/           # Judge dashboard, scoring form, readonly view, organizer progress
+│   └── community/         # Audit log browser, voting configuration management
 ├── static/                # Modern CSS design system (dark tech theme, glassmorphism)
 └── tests/                 # End-to-end integration lifecycle test suite
 ```
@@ -228,3 +258,64 @@ While logged in as `judge1`, attempt to access unassigned submissions or other e
    - **Progress Status**: 100% completion for fully evaluated submissions.
    - **Scores Table**: Both Raw Average and Normalized Final Scores are displayed side-by-side.
    - **CSV Export**: Click **Export Raw Scores (CSV)** and **Export Normalized Rankings (CSV)** to download audit logs.
+
+---
+
+## 🌟 Phase 8 Verification Walkthrough: Testing Community Voting & Results Privacy
+
+Follow these steps to verify peer voting, anti-collusion protection, results withholding, and public disclosure:
+
+### 1. Ensure Voting Is Enabled on the Demo Event
+Run the management command to open voting with results hidden:
+```powershell
+python manage.py configure_voting --event ai-frontier-hackathon-2026 --open-now --hide-results
+```
+
+### 2. Verify Anti-Collusion: Self-Team Voting Is Prohibited
+1. Open [http://localhost:8000/login/](http://localhost:8000/login/) and log in as:
+   - **Username:** `participant1` | **Password:** `dogfood123` *(Lead for Team Alpha Agents)*
+2. Visit their own team's submission:
+   [http://localhost:8000/gallery/1/](http://localhost:8000/gallery/1/) (*AgentPulse*)
+3. Observe the anti-collusion notice:
+   `⚠️ Anti-Collusion Rule: You cannot vote on your own team's submission.`
+   *(Any POST request to the vote endpoint returns HTTP 403 Forbidden).*
+
+### 3. Cast Vote as Participant 3 (Different Team)
+1. Open an Incognito/Private window (or log out and log in) as:
+   - **Username:** `participant3` | **Password:** `dogfood123` *(Member of Team Nexus Builders)*
+2. Visit *AgentPulse*: [http://localhost:8000/gallery/1/](http://localhost:8000/gallery/1/)
+3. Notice that voting is available! Select **★★★★★ (5 Stars)** and click **Submit Vote**.
+4. Observe the green confirmation message and indicator:
+   `✓ You previously rated this project 5★`.
+5. Now re-vote with **★★★★☆ (4 Stars)** and click **Update Rating**.
+   Confirm that the vote updates seamlessly without creating duplicate database rows.
+
+### 4. Cast Vote as Participant 4
+1. In another session, log in as:
+   - **Username:** `participant4` | **Password:** `dogfood123`
+2. Visit *AgentPulse* and vote **★★★★☆ (4 Stars)**.
+
+### 5. Confirm Results Are Hidden While Voting Is Open
+1. As `participant3` or as an anonymous visitor, look at the project header on [http://localhost:8000/gallery/1/](http://localhost:8000/gallery/1/):
+   - Notice the badge: `🔒 Results Hidden — Withheld until voting closes`.
+   - The average rating and total vote counts are completely withheld from the public/participants.
+
+### 6. Close Voting & Confirm Public Results Disclosure
+1. Close the voting window via management command (or via organizer UI):
+   ```powershell
+   python manage.py configure_voting --event ai-frontier-hackathon-2026 --close-now
+   ```
+2. Refresh [http://localhost:8000/gallery/1/](http://localhost:8000/gallery/1/) as an anonymous visitor or participant:
+   - Notice that the results are now unlocked and visible:
+     `★ 4.0 / 5.0 (2 peer votes)`
+   - On the gallery list [http://localhost:8000/gallery/](http://localhost:8000/gallery/), the gold rating badge appears on the project card.
+
+### 7. Inspect Community Audit Logs as Organizer
+1. Log in as **Username:** `organizer1` | **Password:** `dogfood123`.
+2. Visit the **Community Audit Logs**:
+   [http://localhost:8000/community/events/ai-frontier-hackathon-2026/audit-logs/](http://localhost:8000/community/events/ai-frontier-hackathon-2026/audit-logs/)
+3. Observe the complete chronological activity trail:
+   - `⭐ Vote Cast` by `@participant3`
+   - `🔄 Vote Changed` from 5 to 4 by `@participant3`
+   - `⭐ Vote Cast` by `@participant4`
+   - Filter by action type or username to verify audit query controls.

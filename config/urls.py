@@ -13,5 +13,6 @@ urlpatterns = [
     path('', include('apps.submissions.urls')),
     path('', include('apps.gallery.urls')),
     path('', include('apps.judging.urls')),
+    path('', include('apps.community.urls')),
     path('', lambda request: redirect('event_list'), name='home'),
 ]

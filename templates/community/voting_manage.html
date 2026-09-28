@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Voting Configuration: {{ event.name }} - Dogfood Platform{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <!-- Breadcrumb -->
+    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+        <a href="{% url 'event_detail' slug=event.slug %}" style="color: var(--text-secondary); text-decoration: none;">&larr; {{ event.name }}</a>
+        <span>/</span>
+        <span style="color: var(--text-primary);">Voting Configuration</span>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <h1 style="font-size: 2rem; margin-bottom: 0.35rem; color: #ffffff;">
+                ⚙️ Community Voting Configuration
+            </h1>
+            <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">
+                Configure peer voting lifecycle, open/close schedule, and real-time results privacy for <strong>{{ event.name }}</strong>.
+            </p>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{% url 'event_audit_logs' event_slug=event.slug %}" class="btn btn-secondary btn-sm">
+                🛡️ Audit Logs
+            </a>
+            <a href="{% url 'gallery_list' %}?event={{ event.slug }}" class="btn btn-secondary btn-sm" target="_blank">
+                Public Gallery &nearr;
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="padding: 2.25rem; max-width: 800px; margin: 0 auto;">
+    <!-- Current Status Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap;">
+        <div>
+            <span style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Live Voting Status</span>
+            <div style="font-size: 1.25rem; font-weight: 700;">
+                {% if is_voting_open %}
+                    <span style="color: #34d399; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <span class="status-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                        Voting is Currently Open
+                    </span>
+                {% elif event.voting_enabled %}
+                    <span style="color: #fbbf24; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <span class="status-dot" style="background: #f59e0b;"></span>
+                        Voting Enabled (Outside Window / Closed)
+                    </span>
+                {% else %}
+                    <span style="color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <span class="status-dot" style="background: #64748b;"></span>
+                        Voting Disabled
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div style="text-align: right;">
+            <span style="color: var(--text-muted); font-size: 0.85rem; display: block;">Results Visibility</span>
+            <strong style="color: {% if event.results_visible_during_voting %}#38bdf8{% else %}#fbbf24{% endif %}; font-size: 0.95rem;">
+                {% if event.results_visible_during_voting %}
+                    Visible Live to Voters
+                {% else %}
+                    Hidden until Voting Closes
+                {% endif %}
+            </strong>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <form method="POST">
+        {% csrf_token %}
+
+        <!-- Toggle: voting_enabled -->
+        <div class="card" style="padding: 1.5rem; margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.4); border-color: var(--border-subtle);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div>
+                    <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem; color: #ffffff;">Enable Community Voting</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+                        Permit registered participants to rate submitted projects from 1 to 5 stars.
+                    </p>
+                </div>
+                <label style="position: relative; display: inline-block; width: 50px; height: 26px;">
+                    <input type="checkbox" name="voting_enabled" {% if event.voting_enabled %}checked{% endif %} style="opacity: 0; width: 0; height: 0;" id="toggle-voting">
+                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 34px;"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Schedule Dates -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="voting_opens_at" class="form-label">Voting Opens At (Optional)</label>
+                <input 
+                    type="datetime-local" 
+                    id="voting_opens_at" 
+                    name="voting_opens_at" 
+                    value="{{ event.voting_opens_at|date:'Y-m-d\TH:i' }}"
+                >
+                <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                    Leave blank to open immediately when voting is enabled.
+                </span>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="voting_closes_at" class="form-label">Voting Closes At (Optional)</label>
+                <input 
+                    type="datetime-local" 
+                    id="voting_closes_at" 
+                    name="voting_closes_at" 
+                    value="{{ event.voting_closes_at|date:'Y-m-d\TH:i' }}"
+                >
+                <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                    Leave blank to keep voting open indefinitely until manually disabled.
+                </span>
+            </div>
+        </div>
+
+        <!-- Toggle: results_visible_during_voting -->
+        <div class="card" style="padding: 1.5rem; margin-bottom: 2rem; background: rgba(15, 23, 42, 0.4); border-color: var(--border-subtle);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div>
+                    <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem; color: #ffffff;">Show Results Live During Voting</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+                        If disabled (recommended), aggregate averages and vote counts are withheld from participants until voting closes to prevent social bias.
+                    </p>
+                </div>
+                <label style="position: relative; display: inline-block; width: 50px; height: 26px;">
+                    <input type="checkbox" name="results_visible_during_voting" {% if event.results_visible_during_voting %}checked{% endif %} style="opacity: 0; width: 0; height: 0;" id="toggle-results">
+                    <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 34px;"></span>
+                </label>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{% url 'event_detail' slug=event.slug %}" class="btn btn-secondary">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" id="save-voting-settings-btn">
+                Save Voting Configuration
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+/* Simple CSS toggle switch */
+input:checked + .slider {
+    background-color: #6366f1 !important;
+}
+input:checked + .slider:before {
+    transform: translateX(24px);
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+</style>
+{% endblock %}

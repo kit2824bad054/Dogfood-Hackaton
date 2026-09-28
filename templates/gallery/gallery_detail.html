@@ -1,71 +1,74 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
-{% block title %}{{ submission.title }} - Dogfood Gallery{% endblock %}
+{% block title %}{{ submission.title }} - Community Showcase - Dogfood Platform{% endblock %}
 
 {% block content %}
-<!-- Breadcrumb navigation -->
-<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">
+<!-- Breadcrumb Header -->
+<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-muted); flex-wrap: wrap;">
     <a href="{% url 'gallery_list' %}" style="color: var(--text-secondary); text-decoration: none;">&larr; Back to Public Gallery</a>
     <span>/</span>
-    <a href="{% url 'event_detail' slug=event.slug %}" style="color: var(--text-secondary); text-decoration: none;">{{ event.name }}</a>
+    <a href="{% url 'gallery_list' %}?event={{ event.slug }}" style="color: var(--text-secondary); text-decoration: none;">{{ event.name }}</a>
     <span>/</span>
     <span style="color: var(--text-primary);">{{ submission.title }}</span>
 </div>
 
-<!-- Project Showcase Header -->
-<div class="card" style="padding: 2.25rem; margin-bottom: 2rem; position: relative; overflow: hidden;">
+<!-- Main Project Header Banner -->
+<div class="card" style="padding: 2.5rem; margin-bottom: 2rem; position: relative; overflow: hidden; border: 1px solid var(--border-focus); background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 300px;">
-            <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
-                <span class="status-pill status-open">
-                    <span class="status-dot"></span> Submitted & Verified
+        <div>
+            <!-- Status & Category Badges -->
+            <div style="display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap;">
+                <span class="status-pill status-open" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">
+                    <span class="status-dot"></span> {{ event.name }}
                 </span>
-                <a href="{% url 'event_detail' slug=event.slug %}" style="text-decoration: none;">
-                    <span class="role-badge role-organizer">
-                        🎪 {{ event.name }}
-                    </span>
-                </a>
                 {% if track %}
-                    <span class="role-badge role-participant">
-                        🎯 {{ track.name }}
+                    <span class="role-badge role-participant" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">
+                        Track: {{ track.name }}
                     </span>
                 {% endif %}
+                <span class="status-pill status-submitted" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">
+                    ✓ Officially Submitted
+                </span>
             </div>
 
-            <h1 style="font-size: 2.2rem; margin-bottom: 0.75rem; color: #ffffff;" id="project-title">
+            <!-- Project Title -->
+            <h1 style="font-size: 2.2rem; margin-bottom: 0.5rem; color: #ffffff; letter-spacing: -0.02em;">
                 {{ submission.title }}
             </h1>
 
-            <p style="font-size: 1.05rem; color: #cbd5e1; margin-bottom: 1.25rem;">
-                Built by Team <strong style="color: #ffffff;">{{ team.name }}</strong>
-                {% if submission.submitted_at %}
-                    &bull; Submitted on {{ submission.submitted_at|date:"F d, Y \a\t g:i A" }}
-                {% endif %}
+            <!-- Subtitle Meta -->
+            <p style="color: var(--text-secondary); font-size: 1.05rem; margin: 0;">
+                Crafted by <strong>{{ team.name }}</strong> &bull; Submitted on {{ submission.submitted_at|date:"F d, Y \a\t g:i A" }}
             </p>
+        </div>
 
-            <!-- Action buttons for external resources -->
+        <!-- External Artifacts Links -->
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; min-width: 200px;">
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                 {% if submission.repo_url %}
-                    <a href="{{ submission.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="repo-url-link">
-                        💻 View Source Repository &nearr;
+                    <a href="{{ submission.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" id="repo-link" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <span>💻</span> Repository &nearr;
                     </a>
                 {% endif %}
                 {% if submission.demo_url %}
-                    <a href="{{ submission.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" id="demo-url-link">
-                        🌐 Live Project Demo &nearr;
+                    <a href="{{ submission.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" id="demo-link" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                        <span>🌐</span> Live Demo &nearr;
                     </a>
                 {% endif %}
-                <a href="{% url 'gallery_list' %}" class="btn btn-secondary">
-                    Browse All Projects
-                </a>
             </div>
+            {% if not submission.repo_url and not submission.demo_url %}
+                <div style="color: var(--text-muted); font-size: 0.85rem; text-align: right;">
+                    No external links provided
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: start;" id="detail-layout">
-    <!-- Main Column: Full Project Description -->
+    <!-- Main Column: Full Project Description, Voting Widget, and Comments -->
     <div>
+        <!-- Project Description -->
         <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
             <h2 style="font-size: 1.4rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
                 <span>📖</span> Project Overview & Architecture
@@ -85,6 +88,205 @@
                 </p>
             </div>
         {% endif %}
+
+        <!-- Community Peer Voting & Ratings Card (Phase 8 / T3) -->
+        <div class="card" style="padding: 2rem; margin-bottom: 2rem; border-color: rgba(99, 102, 241, 0.4);" id="community-voting-section">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                <div>
+                    <h3 style="font-size: 1.35rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem; color: #ffffff;">
+                        <span>⭐</span> Community Peer Rating
+                    </h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">
+                        1-5 Star participant evaluation with anti-abuse and anti-collusion safeguards.
+                    </p>
+                </div>
+
+                <!-- Aggregated Score Display (Respecting Privacy Window) -->
+                <div>
+                    {% if community_stats.results_visible %}
+                        <div style="text-align: right; background: rgba(30, 41, 59, 0.6); padding: 0.5rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            {% if community_stats.vote_count > 0 %}
+                                <div style="font-size: 1.6rem; font-weight: 800; color: #fbbf24;" id="community-avg-rating">
+                                    ★ {{ community_stats.avg_rating }}
+                                    <span style="font-size: 0.9rem; color: var(--text-muted); font-weight: normal;">/ 5.0</span>
+                                </div>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);" id="community-vote-count">
+                                    {{ community_stats.vote_count }} peer vote{{ community_stats.vote_count|pluralize }}
+                                </span>
+                            {% else %}
+                                <span style="color: var(--text-muted); font-size: 0.9rem;">No votes cast yet</span>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.6rem 0.9rem; border-radius: var(--radius-md); text-align: right;" id="results-hidden-badge">
+                            <div style="color: #fbbf24; font-size: 0.85rem; font-weight: 600;">
+                                🔒 Results Hidden
+                            </div>
+                            <span style="font-size: 0.75rem; color: #94a3b8;">
+                                Withheld until voting closes
+                            </span>
+                            {% if is_organizer_or_admin %}
+                                <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 0.2rem;">
+                                    (Organizer: {{ submission.votes.count }} votes)
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Voting Form / Status Area -->
+            {% if event.is_voting_open %}
+                {% if is_own_team %}
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 1rem; border-radius: var(--radius-md); color: #fca5a5; font-size: 0.9rem;">
+                        ⚠️ <strong>Anti-Collusion Rule:</strong> You cannot vote on your own team's submission.
+                    </div>
+                {% elif can_vote %}
+                    <form method="POST" action="{% url 'community_vote' submission_id=submission.id %}" style="background: rgba(15, 23, 42, 0.5); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);" id="voting-form">
+                        {% csrf_token %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                            <div>
+                                <label style="font-size: 0.95rem; font-weight: 600; color: #ffffff; display: block; margin-bottom: 0.35rem;">
+                                    {% if user_vote %}Update Your Rating:{% else %}Cast Your Rating:{% endif %}
+                                </label>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                    Rate from 1 (poor) to 5 (exceptional) stars.
+                                </span>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <select name="value" id="vote-value-select" style="padding: 0.5rem 0.8rem; font-size: 1rem; font-weight: 700; background: #0f172a; border: 1px solid var(--border-focus); color: #fbbf24; border-radius: var(--radius-md);">
+                                    <option value="5" {% if user_vote and user_vote.value == 5 %}selected{% endif %}>★★★★★ (5 Stars)</option>
+                                    <option value="4" {% if user_vote and user_vote.value == 4 %}selected{% endif %}>★★★★☆ (4 Stars)</option>
+                                    <option value="3" {% if user_vote and user_vote.value == 3 %}selected{% endif %}>★★★☆☆ (3 Stars)</option>
+                                    <option value="2" {% if user_vote and user_vote.value == 2 %}selected{% endif %}>★★☆☆☆ (2 Stars)</option>
+                                    <option value="1" {% if user_vote and user_vote.value == 1 %}selected{% endif %}>★☆☆☆☆ (1 Star)</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-sm" id="submit-vote-btn" style="padding: 0.55rem 1.2rem;">
+                                    {% if user_vote %}Update Rating{% else %}Submit Vote{% endif %}
+                                </button>
+                            </div>
+                        </div>
+
+                        {% if user_vote %}
+                            <div style="margin-top: 0.75rem; font-size: 0.8rem; color: #34d399;" id="current-vote-indicator">
+                                ✓ You previously rated this project <strong>{{ user_vote.value }}★</strong> on {{ user_vote.updated_at|date:"M d, Y" }}.
+                            </div>
+                        {% endif %}
+                    </form>
+                {% else %}
+                    <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); padding: 1rem; border-radius: var(--radius-md); font-size: 0.9rem; color: #cbd5e1;">
+                        ℹ️ {{ ineligibility_reason }}
+                        {% if not request.user.is_authenticated %}
+                            <a href="{% url 'login' %}?next={{ request.path }}" style="color: #38bdf8; margin-left: 0.4rem;">Sign in here &rarr;</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% else %}
+                <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); padding: 1rem; border-radius: var(--radius-md); font-size: 0.9rem; color: #cbd5e1;">
+                    🔒 Community voting is not currently active for this event.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Community Discussion / Comments Section (Phase 8 / T3) -->
+        <div class="card" style="padding: 2rem; margin-bottom: 2rem;" id="comments-section">
+            <h3 style="font-size: 1.35rem; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: #ffffff;">
+                <span>💬</span> Community Discussion ({{ comments|length }})
+            </h3>
+
+            <!-- Existing Comments List -->
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;" id="comments-list">
+                {% for c in comments %}
+                    <div style="padding: 1.25rem; background: rgba(15, 23, 42, 0.6); border: 1px solid {% if c.is_hidden %}rgba(239, 68, 68, 0.4){% elif c.is_flagged_duplicate %}rgba(245, 158, 11, 0.4){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md);" id="comment-{{ c.id }}">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.6rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <strong style="color: #ffffff; font-size: 0.95rem;">@{{ c.user.username }}</strong>
+                                <span class="role-badge role-participant" style="font-size: 0.65rem;">
+                                    {{ c.user.get_role_display }}
+                                </span>
+                                {% if c.user == team.created_by %}
+                                    <span class="role-badge role-organizer" style="font-size: 0.65rem;">Team Member</span>
+                                {% endif %}
+                                {% if c.is_flagged_duplicate and is_organizer_or_admin %}
+                                    <span style="font-size: 0.65rem; background: rgba(245, 158, 11, 0.2); color: #fbbf24; padding: 0.15rem 0.45rem; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.35);">
+                                        ⚠️ Duplicate Flagged
+                                    </span>
+                                {% endif %}
+                                {% if c.is_hidden %}
+                                    <span style="font-size: 0.65rem; background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 0.15rem 0.45rem; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.35);">
+                                        🔒 Hidden by Organizer
+                                    </span>
+                                {% endif %}
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                    {{ c.created_at|date:"M d, Y \a\t g:i A" }}
+                                </span>
+
+                                <!-- Organizer Moderation Actions -->
+                                {% if is_organizer_or_admin %}
+                                    <form method="POST" action="{% url 'community_moderate_comment' comment_id=c.id %}" style="display: inline; margin: 0;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="next" value="{{ request.path }}">
+                                        {% if c.is_hidden %}
+                                            <input type="hidden" name="action" value="unhide">
+                                            <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #34d399;" title="Restore public visibility">
+                                                Restore
+                                            </button>
+                                        {% else %}
+                                            <input type="hidden" name="action" value="hide">
+                                            <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; color: #f87171;" title="Soft-hide comment from public view">
+                                                Hide
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Comment Text Content -->
+                        <div style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.6; white-space: pre-line;">
+                            {{ c.body }}
+                        </div>
+                    </div>
+                {% empty %}
+                    <p style="color: var(--text-muted); font-size: 0.95rem; text-align: center; padding: 1.5rem 0;" id="no-comments-msg">
+                        No comments posted yet. Be the first to share your thoughts!
+                    </p>
+                {% endfor %}
+            </div>
+
+            <!-- Comment Submission Form -->
+            {% if request.user.is_authenticated %}
+                <form method="POST" action="{% url 'community_comment' submission_id=submission.id %}" id="comment-form">
+                    {% csrf_token %}
+                    <div class="form-group" style="margin-bottom: 0.75rem;">
+                        <label for="comment-body" class="form-label" style="font-size: 0.9rem;">
+                            Leave Feedback or Ask a Question:
+                        </label>
+                        <textarea 
+                            name="body" 
+                            id="comment-body" 
+                            rows="3" 
+                            placeholder="Share constructive feedback, praise, or technical questions with the builders..."
+                            required
+                            style="font-size: 0.95rem;"
+                        ></textarea>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn btn-primary btn-sm" id="submit-comment-btn" style="padding: 0.5rem 1.25rem;">
+                            Post Comment
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <div style="background: rgba(148, 163, 184, 0.08); padding: 1rem; border-radius: var(--radius-md); text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+                    <a href="{% url 'login' %}?next={{ request.path }}" style="color: #38bdf8; font-weight: 600;">Sign in</a> to join the community discussion.
+                </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Sidebar Column: Team Members & Event Context -->
@@ -148,14 +350,28 @@
                     <span style="color: #cbd5e1;">{{ event.submission_deadline|date:"M d, Y \a\t g:i A" }}</span>
                 </div>
 
-                {% if event.prizes.exists %}
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase;">Community Voting</span>
+                    {% if event.is_voting_open %}
+                        <span style="color: #34d399; font-weight: 600;">● Active Now</span>
+                    {% elif event.voting_enabled %}
+                        <span style="color: #fbbf24;">● Configured (Closed)</span>
+                    {% else %}
+                        <span style="color: var(--text-muted);">● Disabled</span>
+                    {% endif %}
+                </div>
+
+                {% if is_organizer_or_admin %}
                     <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; margin-top: 0.25rem;">
-                        <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.4rem;">Prizes Competed For</span>
-                        {% for prize in event.prizes.all|slice:":2" %}
-                            <div style="font-size: 0.85rem; color: #fbbf24; margin-bottom: 0.2rem;">
-                                🏆 {{ prize.title }}: {{ prize.description }}
-                            </div>
-                        {% endfor %}
+                        <span style="color: var(--text-muted); display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.4rem;">Organizer Tools</span>
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                            <a href="{% url 'event_audit_logs' event_slug=event.slug %}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; text-align: center;">
+                                📜 Community Audit Logs
+                            </a>
+                            <a href="{% url 'event_voting_manage' event_slug=event.slug %}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; text-align: center;">
+                                ⚙️ Voting Settings
+                            </a>
+                        </div>
                     </div>
                 {% endif %}
             </div>

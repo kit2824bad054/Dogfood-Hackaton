@@ -117,6 +117,12 @@
 </div>
 
 <!-- Project Submissions Grid -->
+{% if is_randomized_order %}
+    <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: #a5b4fc; font-size: 0.85rem; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); padding: 0.6rem 1rem; border-radius: var(--radius-md);" id="randomized-order-notice">
+        <span>🎲</span> <strong>Anti-Bias Shuffle Active:</strong> Submissions are presented in dynamic randomized order to eliminate positional bias during community voting.
+    </div>
+{% endif %}
+
 {% if submissions %}
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;" id="gallery-grid">
         {% for sub in submissions %}
@@ -127,11 +133,22 @@
                         <span class="status-pill status-open" style="font-size: 0.7rem; padding: 0.15rem 0.55rem;">
                             <span class="status-dot"></span> {{ sub.event.name }}
                         </span>
-                        {% if sub.track %}
-                            <span class="role-badge role-participant" style="font-size: 0.7rem; padding: 0.15rem 0.55rem;">
-                                {{ sub.track.name }}
-                            </span>
-                        {% endif %}
+                        <div style="display: flex; gap: 0.4rem; align-items: center;">
+                            {% if sub.community_stats.results_visible and sub.community_stats.vote_count > 0 %}
+                                <span style="font-size: 0.75rem; color: #fbbf24; font-weight: 700; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 0.15rem 0.5rem; border-radius: 4px;">
+                                    ★ {{ sub.community_stats.avg_rating }} ({{ sub.community_stats.vote_count }})
+                                </span>
+                            {% elif sub.community_stats.voting_open and not sub.community_stats.results_visible %}
+                                <span style="font-size: 0.7rem; color: #94a3b8; background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); padding: 0.15rem 0.45rem; border-radius: 4px;">
+                                    🔒 Votes Hidden
+                                </span>
+                            {% endif %}
+                            {% if sub.track %}
+                                <span class="role-badge role-participant" style="font-size: 0.7rem; padding: 0.15rem 0.55rem;">
+                                    {{ sub.track.name }}
+                                </span>
+                            {% endif %}
+                        </div>
                     </div>
 
                     <!-- Project Title -->

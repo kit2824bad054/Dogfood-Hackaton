@@ -33,6 +33,24 @@ class Event(models.Model):
         default=False,
         help_text="Controls whether submitted projects appear on the public gallery."
     )
+    voting_enabled = models.BooleanField(
+        default=False,
+        help_text="Controls whether community voting is enabled for this event."
+    )
+    voting_opens_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When community voting officially opens."
+    )
+    voting_closes_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When community voting officially closes."
+    )
+    results_visible_during_voting = models.BooleanField(
+        default=False,
+        help_text="Controls whether aggregate scores/vote counts are shown while voting is open."
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
@@ -91,6 +109,28 @@ class Event(models.Model):
         if self.status != self.Status.OPEN:
             return False
         return timezone.now() <= self.submission_deadline
+
+    @property
+    def is_voting_open(self):
+        """
+        Check if community voting is currently open.
+
+        Community voting is open when:
+        1. Event status is not 'draft'.
+        2. voting_enabled is True.
+        3. Current server time is at or after voting_opens_at (if specified).
+        4. Current server time is at or before voting_closes_at (if specified).
+        """
+        if self.status == self.Status.DRAFT:
+            return False
+        if not self.voting_enabled:
+            return False
+        now = timezone.now()
+        if self.voting_opens_at and now < self.voting_opens_at:
+            return False
+        if self.voting_closes_at and now > self.voting_closes_at:
+            return False
+        return True
 
 
 class Track(models.Model):

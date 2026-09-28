@@ -181,6 +181,10 @@ class Command(BaseCommand):
         event1.name = 'AI Frontier Hackathon 2026'
         event1.status = Event.Status.OPEN
         event1.gallery_enabled = True
+        event1.voting_enabled = True
+        event1.voting_opens_at = now - timedelta(days=1)
+        event1.voting_closes_at = now + timedelta(days=7)
+        event1.results_visible_during_voting = False
         event1.start_date = now - timedelta(days=2)
         event1.registration_deadline = now + timedelta(days=5)
         event1.submission_deadline = now + timedelta(days=7)
@@ -244,6 +248,10 @@ class Command(BaseCommand):
         event2.name = 'Cloud Native Summit Hackathon 2026'
         event2.status = Event.Status.CLOSED
         event2.gallery_enabled = True
+        event2.voting_enabled = True
+        event2.voting_opens_at = now - timedelta(days=10)
+        event2.voting_closes_at = now - timedelta(days=2)
+        event2.results_visible_during_voting = False
         event2.start_date = now - timedelta(days=30)
         event2.registration_deadline = now - timedelta(days=10)
         event2.submission_deadline = now - timedelta(days=5)
@@ -337,6 +345,13 @@ class Command(BaseCommand):
         )
         TeamMembership.objects.get_or_create(team=team4, user=participant_users[6])
         TeamMembership.objects.get_or_create(team=team4, user=participant_users[7])
+
+        # Explicit participant registrations for anti-Sybil verification
+        from apps.community.models import EventRegistration
+        for p in participant_users[:4]:
+            EventRegistration.objects.get_or_create(event=event1, user=p)
+        for p in participant_users[4:]:
+            EventRegistration.objects.get_or_create(event=event2, user=p)
 
         # ---------------------------------------------------------------------
         # 4. Seed 3 Submissions (2 Submitted, 1 Draft)
