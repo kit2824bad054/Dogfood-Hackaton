@@ -25,14 +25,69 @@
             </p>
         </div>
 
-        <div style="display: flex; gap: 0.75rem;">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
             <a href="{% url 'event_list' %}" class="btn btn-secondary">Explore Events</a>
+            {% if role == 'judge' or role == 'admin' %}
+                <a href="{% url 'judge_dashboard' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none;">
+                    ⚖️ Go to Judging Console &rarr;
+                </a>
+            {% endif %}
             {% if role == 'organizer' or role == 'admin' or request.user.is_superuser %}
                 <a href="{% url 'event_create' %}" class="btn btn-primary">+ Create Hackathon</a>
             {% endif %}
         </div>
     </div>
 </div>
+
+{% if pending_invitations %}
+<!-- Pending Judge Invitations Alert on Accounts Dashboard -->
+<div class="card" style="border: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.1); margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h3 style="margin: 0; color: #fbbf24; display: flex; align-items: center; gap: 0.5rem; font-size: 1.2rem;">
+            <span>📬</span> Event Invitations Waiting for Your Response ({{ pending_invitations.count }})
+        </h3>
+        <span style="font-size: 0.85rem; color: #cbd5e1;">You must accept an invitation before you can be assigned submissions for an event.</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for invite in pending_invitations %}
+            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.75); padding: 1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h4 style="margin: 0 0 0.25rem 0; font-size: 1.1rem; color: #60a5fa;">
+                        {{ invite.event.name }}
+                    </h4>
+                    <p style="margin: 0; font-size: 0.85rem; color: #94a3b8;">
+                        Invited by <strong>@{{ invite.invited_by.username }}</strong> &bull; Sent {{ invite.created_at|timesince }} ago
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{% url 'judge_invitation_respond' invite.token %}" class="btn btn-primary btn-sm" style="padding: 0.5rem 1rem;">
+                        Review & Respond &rarr;
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if role == 'judge' and assigned_count is not None %}
+<!-- Judge Overview Metrics -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="card" style="padding: 1.25rem; margin-bottom: 0; text-align: center; border-left: 4px solid #6366f1;">
+        <div style="font-size: 2rem; font-weight: 700; color: #a5b4fc;">{{ assigned_count }}</div>
+        <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem;">Assigned Submissions</div>
+    </div>
+    <div class="card" style="padding: 1.25rem; margin-bottom: 0; text-align: center; border-left: 4px solid #10b981;">
+        <div style="font-size: 2rem; font-weight: 700; color: #6ee7b7;">{{ completed_count|default:"0" }}</div>
+        <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem;">Evaluations Completed</div>
+    </div>
+    <div class="card" style="padding: 1.25rem; margin-bottom: 0; text-align: center; border-left: 4px solid #f59e0b;">
+        <div style="font-size: 2rem; font-weight: 700; color: #fcd34d;">{{ pending_invitations.count|default:"0" }}</div>
+        <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem;">Pending Invitations</div>
+    </div>
+</div>
+{% endif %}
 
 {% if role == 'admin' and stats %}
 <!-- Admin System Overview Metrics -->
@@ -58,6 +113,19 @@
 
 <!-- Quick Action Cards Grid -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    {% if role == 'judge' or role == 'admin' %}
+        <div class="card interactive-card" style="padding: 1.5rem; margin-bottom: 0; border: 2px solid #6366f1; background: rgba(99, 102, 241, 0.08);">
+            <div style="font-size: 2rem; margin-bottom: 0.75rem;">⚖️</div>
+            <h3 style="margin-bottom: 0.5rem; color: #a5b4fc;">Judge Evaluation Console</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 1.25rem;">
+                Access your assigned hackathon submissions, respond to pending event invitations, and enter isolated rubric evaluations.
+            </p>
+            <a href="{% url 'judge_dashboard' %}" class="btn btn-primary btn-sm">
+                Open Judging Console ({{ assigned_count|default:"0" }} Assigned) &rarr;
+            </a>
+        </div>
+    {% endif %}
+
     <div class="card interactive-card" style="padding: 1.5rem; margin-bottom: 0;">
         <div style="font-size: 2rem; margin-bottom: 0.75rem;">🎪</div>
         <h3 style="margin-bottom: 0.5rem;">Hackathons & Competitions</h3>

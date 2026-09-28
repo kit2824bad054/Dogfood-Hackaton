@@ -26,6 +26,11 @@
             <a href="{% url 'gallery_list' %}" class="nav-link">Public Gallery</a>
 
             {% if request.user.is_authenticated %}
+                {% if request.user.role == 'judge' or request.user.role == 'admin' %}
+                    <a href="{% url 'judge_dashboard' %}" class="btn btn-secondary btn-sm" style="border-color: #818cf8; color: #a5b4fc;">
+                        ⚖️ Judging Console
+                    </a>
+                {% endif %}
                 {% if request.user.role == 'organizer' or request.user.role == 'admin' or request.user.is_superuser %}
                     <a href="{% url 'event_create' %}" class="btn btn-primary btn-sm">+ Create Hackathon</a>
                 {% endif %}

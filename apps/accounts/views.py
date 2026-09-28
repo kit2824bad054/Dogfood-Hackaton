@@ -84,10 +84,38 @@ def participant_dashboard_view(request):
 
 @role_required('judge')
 def judge_dashboard_view(request):
+    from apps.judging.models import EventJudge, JudgeAssignment
+    from django.db.models import Q
+
+    pending_invitations = (
+        EventJudge.objects.filter(
+            status=EventJudge.Status.PENDING
+        ).filter(
+            Q(user=request.user) | (Q(user__isnull=True) & Q(email__iexact=request.user.email) & ~Q(email=''))
+        )
+        .select_related('event', 'invited_by')
+        .order_by('-created_at')
+    )
+
+    accepted_event_ids = EventJudge.objects.filter(
+        user=request.user,
+        status=EventJudge.Status.ACCEPTED
+    ).values_list('event_id', flat=True)
+
+    assignments = JudgeAssignment.objects.filter(
+        judge=request.user,
+        submission__event_id__in=accepted_event_ids
+    )
+
     return render(request, 'accounts/dashboard.html', {
         'role': 'judge',
         'title': 'Judge Dashboard',
+        'pending_invitations': pending_invitations,
+        'assigned_count': assignments.count(),
+        'completed_count': assignments.filter(status=JudgeAssignment.Status.COMPLETED).count(),
+        'in_progress_count': assignments.filter(status=JudgeAssignment.Status.IN_PROGRESS).count(),
     })
+
 
 
 @role_required('organizer')
