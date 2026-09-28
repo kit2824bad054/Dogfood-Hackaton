@@ -1,6 +1,10 @@
 # Dogfood Platform (T1 Platform, T2 Judging & T3 Community Hub)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OSI Approved](https://img.shields.io/badge/OSI-Approved-blue.svg)](https://opensource.org/licenses/)
+
 A 100% self-hosted hackathon operations, project showcase, peer-judging, and community voting platform built with Django 5, Django REST Framework, PostgreSQL 16, and Docker. Designed for managing complete end-to-end hackathons—from organizer event creation and multi-track definition to participant team formation with cryptographically secure invite codes, collaborative project drafting with server-side deadline enforcement, a public submission gallery, isolated rubric judging with cross-judge normalization, and community voting with anti-abuse rate limits and privacy controls.
+
 
 > **T1, T2 & T3 Completed**: Foundation, RBAC, Event Lifecycles, Team Formation, Submissions with Deadline Enforcement, Public Project Gallery, Automated Demo Seeding, **T2 Judging** (Rubrics, Role Isolation, Normalization, CSV Exports), and **Phase 8 (T3 Community & Anti-Abuse)**: 1-5 Star Peer Voting, Feedback Comments, Organizer Moderation, Duplicate Comment Detection, Sliding-Window Rate Limiting, Audit Trails, and Results Privacy Controls.
 
@@ -319,3 +323,10 @@ python manage.py configure_voting --event ai-frontier-hackathon-2026 --open-now 
    - `🔄 Vote Changed` from 5 to 4 by `@participant3`
    - `⭐ Vote Cast` by `@participant4`
    - Filter by action type or username to verify audit query controls.
+
+---
+
+## 📄 Open-Source License
+
+This project is open-source software licensed under the [MIT License](LICENSE), an **OSI-approved** open-source license.
+See the [`LICENSE`](LICENSE) file for complete rights and terms.
