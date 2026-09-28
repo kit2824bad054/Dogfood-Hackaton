@@ -552,6 +552,10 @@ class Command(BaseCommand):
         assign_judges_to_event(event1, judges_per_submission=2)
         assign_judges_to_event(event2, judges_per_submission=2)
 
+        # 6e. Ensure all active hackathons have full Overview, Tracks, and Prizes
+        from django.core.management import call_command
+        call_command('populate_hackathon_details')
+
 
         # ---------------------------------------------------------------------
         # 7. Output Summary Report to stdout
