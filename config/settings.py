@@ -128,6 +128,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Authentication Backend (supports login by username or email)
+AUTHENTICATION_BACKENDS = [
+    'apps.accounts.backends.EmailOrUsernameBackend',
+]
+
+
+
 # Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'

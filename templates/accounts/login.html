@@ -27,7 +27,7 @@
             {% endif %}
 
             <div class="form-group">
-                <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                <label class="form-label" for="{{ form.username.id_for_label }}">Username or Email Address</label>
                 {{ form.username }}
                 {% if form.username.errors %}
                     <ul class="errorlist">
@@ -62,14 +62,20 @@
         <!-- Quick Fill Helper for Local Testing -->
         <div style="margin-top: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem; text-align: center;">
             <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;">
-                Quick Demo Accounts (Local Dev)
+                Quick Demo Accounts (Password: dogfood123)
             </span>
             <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.75rem; flex-wrap: wrap;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFill('admin', 'admin12345')">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFill('admin', 'dogfood123')">
                     🛡️ Admin
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFill('org_alice', 'TestPassword123!')">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFill('organizer1', 'dogfood123')">
                     🎪 Organizer
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFill('judge1', 'dogfood123')">
+                    ⚖️ Judge
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFill('participant1', 'dogfood123')">
+                    🧑‍💻 Participant
                 </button>
             </div>
         </div>

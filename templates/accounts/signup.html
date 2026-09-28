@@ -48,6 +48,9 @@
                 {% if form.role.help_text %}
                     <span class="helptext">{{ form.role.help_text }}</span>
                 {% endif %}
+                <div style="margin-top: 0.6rem; font-size: 0.82rem; color: #cbd5e1; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.55rem 0.75rem; border-radius: var(--radius-sm); line-height: 1.4;">
+                    🛡️ <strong>Looking for Admin?</strong> Administrator accounts cannot be self-registered for platform security. Sign in using the pre-seeded admin account: <code>admin</code> (password: <code>dogfood123</code>).
+                </div>
                 {% if form.role.errors %}
                     <ul class="errorlist">{% for e in form.role.errors %}<li>{{ e }}</li>{% endfor %}</ul>
                 {% endif %}

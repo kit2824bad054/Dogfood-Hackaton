@@ -34,6 +34,28 @@
     </div>
 </div>
 
+{% if role == 'admin' and stats %}
+<!-- Admin System Overview Metrics -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <div class="card" style="padding: 1.25rem; margin-bottom: 0; text-align: center; border-left: 4px solid #6366f1;">
+        <div style="font-size: 2rem; font-weight: 700; color: #a5b4fc;">{{ stats.total_users }}</div>
+        <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem;">Total Users</div>
+    </div>
+    <div class="card" style="padding: 1.25rem; margin-bottom: 0; text-align: center; border-left: 4px solid #10b981;">
+        <div style="font-size: 2rem; font-weight: 700; color: #6ee7b7;">{{ stats.total_events }}</div>
+        <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem;">Total Hackathons</div>
+    </div>
+    <div class="card" style="padding: 1.25rem; margin-bottom: 0; text-align: center; border-left: 4px solid #f59e0b;">
+        <div style="font-size: 2rem; font-weight: 700; color: #fcd34d;">{{ stats.total_submissions }}</div>
+        <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem;">Submissions</div>
+    </div>
+    <div class="card" style="padding: 1.25rem; margin-bottom: 0; text-align: center; border-left: 4px solid #ec4899;">
+        <div style="font-size: 2rem; font-weight: 700; color: #f472b6;">{{ stats.total_judges }}</div>
+        <div style="color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem;">Active Judges</div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Quick Action Cards Grid -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
     <div class="card interactive-card" style="padding: 1.5rem; margin-bottom: 0;">
@@ -64,6 +86,24 @@
                 Manage all registered users, promote/demote platform roles, and oversee all database entities.
             </p>
             <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-sm" target="_blank">Open Admin &nearr;</a>
+        </div>
+
+        <div class="card interactive-card" style="padding: 1.5rem; margin-bottom: 0;">
+            <div style="font-size: 2rem; margin-bottom: 0.75rem;">📋</div>
+            <h3 style="margin-bottom: 0.5rem;">Community Audit Logs</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 1.25rem;">
+                Review tamper-evident audit logs of peer votes, comments, moderation, and rate-limit triggers.
+            </p>
+            <a href="/community/events/ai-frontier-hackathon-2026/audit-logs/" class="btn btn-secondary btn-sm">Inspect Audit Logs &rarr;</a>
+        </div>
+
+        <div class="card interactive-card" style="padding: 1.5rem; margin-bottom: 0;">
+            <div style="font-size: 2rem; margin-bottom: 0.75rem;">⚖️</div>
+            <h3 style="margin-bottom: 0.5rem;">Judging & Scoring Console</h3>
+            <p style="font-size: 0.9rem; margin-bottom: 1.25rem;">
+                Track live judging progress, assign judges, execute normalization, and export scores CSV.
+            </p>
+            <a href="/judging/events/ai-frontier-hackathon-2026/progress/" class="btn btn-secondary btn-sm">Open Judging Console &rarr;</a>
         </div>
     {% endif %}
 </div>

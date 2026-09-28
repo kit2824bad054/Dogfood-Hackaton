@@ -35,8 +35,9 @@ class SignUpView(FormView):
 
     def form_valid(self, form):
         user = form.save()
-        login(self.request, user)
+        login(self.request, user, backend='apps.accounts.backends.EmailOrUsernameBackend')
         return redirect(get_dashboard_url_for_role(user.role))
+
 
 
 class CustomLoginView(BaseLoginView):
@@ -99,7 +100,19 @@ def organizer_dashboard_view(request):
 
 @role_required('admin')
 def admin_dashboard_view(request):
+    from apps.events.models import Event
+    from apps.submissions.models import Submission
+    from apps.accounts.models import User
+
+    stats = {
+        'total_users': User.objects.count(),
+        'total_events': Event.objects.count(),
+        'total_submissions': Submission.objects.count(),
+        'total_judges': User.objects.filter(role=User.Role.JUDGE).count(),
+    }
     return render(request, 'accounts/dashboard.html', {
         'role': 'admin',
         'title': 'Admin Dashboard',
+        'stats': stats,
     })
+
