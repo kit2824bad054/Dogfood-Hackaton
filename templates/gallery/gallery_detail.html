@@ -198,7 +198,7 @@
             <!-- Existing Comments List -->
             <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;" id="comments-list">
                 {% for c in comments %}
-                    <div style="padding: 1.25rem; background: rgba(15, 23, 42, 0.6); border: 1px solid {% if c.is_hidden %}rgba(239, 68, 68, 0.4){% elif c.is_flagged_duplicate %}rgba(245, 158, 11, 0.4){% else %}var(--border-subtle){% endif %}; border-radius: var(--radius-md);" id="comment-{{ c.id }}">
+                    <div class="comment-card{% if c.is_hidden %} is-hidden{% elif c.is_flagged_duplicate %} is-duplicate{% endif %}" id="comment-{{ c.id }}">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.6rem; flex-wrap: wrap;">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <strong style="color: #ffffff; font-size: 0.95rem;">@{{ c.user.username }}</strong>

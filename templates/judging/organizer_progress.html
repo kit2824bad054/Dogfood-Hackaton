@@ -69,7 +69,7 @@
 {% if messages %}
     <div style="margin-bottom: 1.5rem;">
         {% for message in messages %}
-            <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 0.75rem; border-left: 4px solid {% if message.tags == 'success' %}#10b981{% elif message.tags == 'warning' %}#f59e0b{% elif message.tags == 'error' %}#f43f5e{% else %}#6366f1{% endif %};">
+            <div class="card alert-card{% if message.tags == 'success' %} alert-success{% elif message.tags == 'warning' %} alert-warning{% elif message.tags == 'error' %} alert-error{% else %} alert-info{% endif %}">
                 {{ message }}
             </div>
         {% endfor %}
@@ -161,8 +161,8 @@
                             <td style="padding: 1rem; color: #fbbf24; font-weight: 600;">{{ jm.pending }}</td>
                             <td style="padding: 1rem; min-width: 180px;">
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <div style="flex: 1; height: 8px; background: rgba(255, 255, 255, 0.08); border-radius: 999px; overflow: hidden;">
-                                        <div style="width: {{ jm.completion_pct }}%; height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); border-radius: 999px;"></div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar-fill" data-progress="{{ jm.completion_pct }}"></div>
                                     </div>
                                     <span style="font-size: 0.85rem; font-weight: 700;">{{ jm.completion_pct }}%</span>
                                 </div>
@@ -238,7 +238,7 @@
                                 {% endif %}
                             </td>
                             <td style="padding: 1rem;">
-                                <span style="color: {% if item.is_fully_judged %}#34d399{% else %}#fbbf24{% endif %}; font-weight: 600;">
+                                <span class="{% if item.is_fully_judged %}text-success{% else %}text-warning{% endif %}" style="font-weight: 600;">
                                     {{ item.completed_judge_count }} / {{ item.judge_count }} completed
                                 </span>
                             </td>
@@ -259,4 +259,10 @@
         </p>
     {% endif %}
 </div>
+
+<script>
+    document.querySelectorAll('[data-progress]').forEach(function(el) {
+        el.style.width = el.getAttribute('data-progress') + '%';
+    });
+</script>
 {% endblock %}

@@ -47,7 +47,7 @@
 {% if messages %}
     <div style="margin-bottom: 1.5rem;">
         {% for message in messages %}
-            <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 0.75rem; border-left: 4px solid {% if message.tags == 'success' %}#10b981{% elif message.tags == 'error' %}#f43f5e{% else %}#6366f1{% endif %};">
+            <div class="card alert-card{% if message.tags == 'success' %} alert-success{% elif message.tags == 'error' %} alert-error{% else %} alert-info{% endif %}">
                 {{ message }}
             </div>
         {% endfor %}

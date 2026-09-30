@@ -80,7 +80,7 @@
     <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
         {% for criterion in rubric_criteria %}
             {% with existing_score=existing_scores|dictsort:criterion.id %}
-            <div class="card" style="padding: 1.75rem; margin-bottom: 0; {% if errors|dictsort:criterion.id %}border-color: #f43f5e;{% endif %}" id="criterion-card-{{ criterion.id }}">
+            <div class="card criterion-card{% if errors|dictsort:criterion.id %} has-error{% endif %}" id="criterion-card-{{ criterion.id }}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">

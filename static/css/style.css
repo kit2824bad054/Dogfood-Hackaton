@@ -146,6 +146,7 @@ header.app-header {
     font-size: 1.25rem;
     background: linear-gradient(135deg, #ffffff 40%, #c7d2fe 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -607,6 +608,84 @@ footer.app-footer {
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
+}
+
+/* Alert Cards (for Django messages) */
+.alert-card {
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid var(--primary);
+}
+
+.alert-card.alert-success {
+    border-left-color: #10b981;
+}
+
+.alert-card.alert-warning {
+    border-left-color: #f59e0b;
+}
+
+.alert-card.alert-error {
+    border-left-color: #f43f5e;
+}
+
+.alert-card.alert-info {
+    border-left-color: #6366f1;
+}
+
+/* Comment Cards */
+.comment-card {
+    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+}
+
+.comment-card.is-hidden {
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.comment-card.is-duplicate {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Rubric and Judging Utilities */
+.criterion-card {
+    padding: 1.75rem;
+    margin-bottom: 0;
+}
+
+.criterion-card.has-error {
+    border-color: #f43f5e;
+}
+
+.text-success {
+    color: #34d399;
+}
+
+.text-warning {
+    color: #fbbf24;
+}
+
+.text-danger {
+    color: #fb7185;
+}
+
+/* Progress bar filling */
+.progress-bar-container {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #10b981);
+    border-radius: 999px;
+    transition: width 0.3s ease;
 }
 
 /* Responsive adjustments */
